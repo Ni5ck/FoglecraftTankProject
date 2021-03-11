@@ -1,0 +1,40 @@
+Req. 1.0 - The game shall spawn players into a preconstructed arena
+Req. 2.0 - The controls shall be overridden to allow for special tank controls (1)
+Req. 2.1 - Tank movement
+Req. 2.1.1 - Tank will move forward when ‘W’ is pressed
+Req. 2.1.2 - Tank will rotate left when ‘A’ is pressed
+Req. 2.1.3 - Tank will rotate right when ‘D’ is pressed
+Req. 2.1.4 - Tank will move backwards when ‘S’ is pressed
+Req. 2.1.5 - Tank will rotate with mouse movement
+Req. 2.2 - Tank shooting
+    Req. 2.2.1 - Tank will shoot where the retical mouse is pointing 
+Req. 2.2.2 - Tank will shoot (spawn a bullet) when the left mouse button is pressed (single finger    click for mouse pad)
+Req. 3.0 - A bullet graphic shall be implemented to show the bullet’s location
+Req. 3.1 - The bullet shall move in a straight line in the direction the turret is facing
+Req. 4.0 - A health meter shall be implemented for the tank (3) -N
+Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
+Req. 4.1.1 - When a player dies, check if there is only one player remaining
+Req. 4.1.2 - When there is only one player remaining, a point shall be given to that player
+Req. 4.1.3 - When a player is dead, they will be in a queue to be respawned once the round has ended
+Req. 5.0 - When the game starts, the players shall spawn in the arena as tanks.
+Req. 5.1 - Each player shall be assigned their own spawn location
+Req. 6.0 - A graphic for the tank shall be made. (2)
+Req. 7.0 - Bullet shall destruct blocks on impact within an explosion radius
+Req. 7.1 - The amount of blocks broken in the explosion radius shall be determined by a randomly influenced equation
+Req. 8.0 - The game shall implement an automated build system
+Req. 9.0 - Tank shall automatically move up a block if there are two air spaces above the block being travelled to
+Req. 10.0 - Player 1 shall be stuck in place until a second player enters the server
+Req. 11.0 - The game shall declare victory of the last remaining player
+Req. 11.1 - The game shall give a point to the victorious player
+Req. 12.0 - The game shall display the points of each player on the upper right corner of the screen
+Req. 13.0 - There should be a dedicated server for players to connect to in order to play multiplayer
+Req. 13.1 - When there are enough players to start a game there will be a one minute timer until the game is started
+    Req. 13.1.1 - Display a timer specifying when the game will start
+Req. 13.2 - When someone enters the game while a previous game is being played they will be sent to a queue to wait for a new game to be started
+Req. 13.2.1 - Display “Waiting for game to start screen” while waiting for previous game to finish up 
+Req. 14.0 - A player shall take damage from being inside a bullet’s explosion radius (cannot self inflict damage)
+Req. 14.1 - How much damage?
+Req. 15.0 - Disable erroneous features from project that the game was forked from
+Req. 15.1 - Disable flying feature
+Req. 15.2 - Disable teleporting to another user
+Req. 15.3 - Disable teleporting to a specific chunk
