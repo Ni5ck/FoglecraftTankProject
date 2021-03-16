@@ -85,8 +85,8 @@ You can run your own server or connect to mine. The server is written in Python
 but requires a compiled DLL so it can perform the terrain generation just like
 the client.
 
-    gcc -std=c99 -O3 -shared -o world -I src -I deps/noise deps/noise/noise.c src/world.c
-    python server.py [HOST [PORT]]
+    gcc -std=c99 -O3 -shared -o world.dylib -I src -I deps/noise deps/noise/noise.c src/world.c
+    python3 server.py [HOST [PORT]]
 
 ### Controls
 
