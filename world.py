@@ -1,10 +1,10 @@
-# gcc -std=c99 -O3 -shared -o world \
+# gcc -std=c99 -O3 -shared -o world.dylib \
 #   -I src -I deps/noise deps/noise/noise.c src/world.c
 
 from ctypes import CDLL, CFUNCTYPE, c_float, c_int, c_void_p
 from collections import OrderedDict
 
-dll = CDLL('./world')
+dll = CDLL("world.dylib")
 
 WORLD_FUNC = CFUNCTYPE(None, c_int, c_int, c_int, c_int, c_void_p)
 
