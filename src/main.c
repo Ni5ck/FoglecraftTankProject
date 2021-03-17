@@ -2397,8 +2397,8 @@ void handle_movement(double dt) {
         g->fov = glfwGetKey(g->window, CRAFT_KEY_ZOOM) ? 15 : 65;
         if (glfwGetKey(g->window, CRAFT_KEY_FORWARD)) sz--;
         if (glfwGetKey(g->window, CRAFT_KEY_BACKWARD)) sz++;
-        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) sx--;
-        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) sx++;
+        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) s->rx -= m; // sx--;
+        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) s->rx += m; // sx++;
         if (glfwGetKey(g->window, GLFW_KEY_LEFT)) s->rx -= m;
         if (glfwGetKey(g->window, GLFW_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_UP)) s->ry += m;
@@ -2407,11 +2407,11 @@ void handle_movement(double dt) {
     float vx, vy, vz;
     get_motion_vector(sz, sx, s->rx, s->ry, &vx, &vy, &vz);
     if (!g->typing) {
-        if (glfwGetKey(g->window, CRAFT_KEY_JUMP)) {
-            if (dy == 0) {
-                dy = 8;
-            }
-        }
+        // if (glfwGetKey(g->window, CRAFT_KEY_JUMP)) {
+        //     if (dy == 0) {
+        //         dy = 8;
+        //     }
+        // }
     }
     float speed = 5;
     int estimate = roundf(sqrtf(
