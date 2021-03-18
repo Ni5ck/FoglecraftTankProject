@@ -2397,8 +2397,8 @@ void handle_movement(double dt) {
         g->fov = glfwGetKey(g->window, CRAFT_KEY_ZOOM) ? 15 : 65;
         if (glfwGetKey(g->window, CRAFT_KEY_FORWARD)) sz--;
         if (glfwGetKey(g->window, CRAFT_KEY_BACKWARD)) sz++;
-        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) sx--;
-        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) sx++;
+        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) s->rx -= m;
+        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_LEFT)) s->rx -= m;
         if (glfwGetKey(g->window, GLFW_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_UP)) s->ry += m;
