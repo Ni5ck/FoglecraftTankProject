@@ -134,6 +134,7 @@ typedef struct {
     int height;
     int observe1;
     int observe2;
+    int flying;
     int item_index;
     int scale;
     int ortho;
@@ -200,16 +201,34 @@ void get_sight_vector(float rx, float ry, float *vx, float *vy, float *vz) {
     *vz = sinf(rx - RADIANS(90)) * m;
 }
 
-void get_motion_vector(int sz, int sx, float rx, float ry,
+void get_motion_vector(int flying, int sz, int sx, float rx, float ry,
     float *vx, float *vy, float *vz) {
     *vx = 0; *vy = 0; *vz = 0;
     if (!sz && !sx) {
         return;
     }
     float strafe = atan2f(sz, sx);
-    *vx = cosf(rx + strafe);
-    *vy = 0;
-    *vz = sinf(rx + strafe);
+    if (flying) {
+        float m = cosf(ry);
+        float y = sinf(ry);
+        if (sx) {
+            if (!sz) {
+                y = 0;
+            }
+            m = 1;
+        }
+        if (sz > 0) {
+            y = -y;
+        }
+        *vx = cosf(rx + strafe) * m;
+        *vy = y;
+        *vz = sinf(rx + strafe) * m;
+    }
+    else {
+        *vx = cosf(rx + strafe);
+        *vy = 0;
+        *vz = sinf(rx + strafe);
+    }
 }
 
 GLuint gen_crosshair_buffer() {
@@ -2228,6 +2247,9 @@ void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
         }
     }
     if (!g->typing) {
+        if (key == CRAFT_KEY_FLY) {
+            g->flying = !g->flying;
+        }
         if (key >= '1' && key <= '9') {
             g->item_index = key - '1';
         }
@@ -2405,15 +2427,18 @@ void handle_movement(double dt) {
         if (glfwGetKey(g->window, GLFW_KEY_DOWN)) s->ry -= m;
     }
     float vx, vy, vz;
-    get_motion_vector(sz, sx, s->rx, s->ry, &vx, &vy, &vz);
+    get_motion_vector(g->flying, sz, sx, s->rx, s->ry, &vx, &vy, &vz);
     if (!g->typing) {
-        // if (glfwGetKey(g->window, CRAFT_KEY_JUMP)) {
-        //     if (dy == 0) {
-        //         dy = 8;
-        //     }
-        // }
+        if (glfwGetKey(g->window, CRAFT_KEY_JUMP)) {
+            if (g->flying) {
+                vy = 1;
+            }
+            else if (dy == 0) {
+                dy = 8;
+            }
+        }
     }
-    float speed = 5;
+    float speed = g->flying ? 20 : 5;
     int estimate = roundf(sqrtf(
         powf(vx * speed, 2) +
         powf(vy * speed + ABS(dy) * 2, 2) +
@@ -2424,8 +2449,13 @@ void handle_movement(double dt) {
     vy = vy * ut * speed;
     vz = vz * ut * speed;
     for (int i = 0; i < step; i++) {
-        dy -= ut * 25;
-        dy = MAX(dy, -250);
+        if (g->flying) {
+            dy = 0;
+        }
+        else {
+            dy -= ut * 25;
+            dy = MAX(dy, -250);
+        }
         s->x += vx;
         s->y += vy + dy * ut;
         s->z += vz;
@@ -2542,6 +2572,7 @@ void reset_model() {
     g->player_count = 0;
     g->observe1 = 0;
     g->observe2 = 0;
+    g->flying = 0;
     g->item_index = 0;
     memset(g->typing_buffer, 0, sizeof(char) * MAX_TEXT_LENGTH);
     g->typing = 0;
