@@ -33,6 +33,8 @@
 #define MODE_OFFLINE 0
 #define MODE_ONLINE 1
 
+#define MAX_HEALTH 10
+
 typedef struct {
     Map map;
     SignList signs;
@@ -68,6 +70,8 @@ typedef struct {
 typedef struct {
     int id;
     char name[MAX_NAME_LENGTH];
+    float health;
+    int points;
     State state;
     State state1;
     State state2;
@@ -98,6 +102,7 @@ typedef struct {
     int delete_radius;
     int sign_radius;
     Player players[MAX_PLAYERS];
+    int respawn_locations[MAX_PLAYERS * 3];
     int player_count;
     int typing;
     char typing_buffer[MAX_TEXT_LENGTH];
@@ -1955,7 +1960,18 @@ void handle_mouse_input() {
         glfwGetInputMode(g->window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
     static double px = 0;
     static double py = 0;
-    State *s = &g->players->state;
+    // Only live players should be able to move
+    Player ** alive_players;
+    int alive_count = 0;
+    for (int i = 0; i < g->player_count; i++)
+    {
+      if (!isDead(g->players[i]))
+      {
+        alive_players[alive_count] = &g->players[i];
+        alive_count++;
+      }
+    }
+    State *s = &alive_players->state;
     if (exclusive && (px || py)) {
         double mx, my;
         glfwGetCursorPos(g->window, &mx, &my);
@@ -1985,7 +2001,24 @@ void handle_mouse_input() {
 
 void handle_movement(double dt) {
     static float dy = 0;
-    State *s = &g->players->state;
+    // Only live players should be able to move
+    Player ** alive_players;
+    int alive_count = 0;
+    printf("before for", stdout);
+    for (int i = 0; i < g->player_count; i++)
+    {
+      printf("not if", stdout);
+      if (!isDead(g->players[i]))
+      {
+        printf("if 1", stdout);
+        alive_players[alive_count] = &g->players[i];
+        alive_count++;
+        printf("if 2", stdout);
+      }
+    }
+    printf("here", stdout);
+    State *s = &alive_players->state;
+    // State *s = &g->players->state;
     int sz = 0;
     int sx = 0;
     if (!g->typing) {
@@ -2331,7 +2364,9 @@ int main(int argc, char **argv) {
             double now = glfwGetTime();
             double dt = MIN(now - previous, 0.2);
             previous = now;
-
+            
+            // Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
+            
             // HANDLE MOUSE INPUT //
             handle_mouse_input();
 
@@ -2436,6 +2471,61 @@ int main(int argc, char **argv) {
                         other->name);
                 }
             }
+            
+            // Display health text
+            char * hp_display = "HP: ";
+            char healthText[5];
+            snprintf(healthText, sizeof healthText, "%f", g->players->health);
+            strcat(hp_display, healthText);
+            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, hp_display);
+            // Display death message and determine how many players are left alive
+            char * death_message = "You Died.\nWaiting for this round to end.";
+            int players_alive = g->player_count;
+            Player *last_alive;
+            for (int i = 0; i < g->player_count; i++)
+            {
+              if (isDead(&g->players[i]))
+              {
+                players_alive--;
+                // Display text only to one player
+              }
+              else
+              {
+                last_alive = &g->players[i];
+              }
+            }
+            
+            // Handle point distribution and display points
+            if (players_alive == 1)
+            {
+              last_alive->points++;
+              respawn_all();
+            }
+            else if (players_alive == 0)
+            {
+              respawn_all();
+            }
+            char * self_points = g->players->name;
+            strcat(self_points, ": ");
+            strcat(self_points, g->players->points);
+            
+            // Check who the top player is and display their points
+            char * top_player = "(TOP) ";
+            int top_index = 0;
+            int top_points = 0;
+            for (int i = 0; i < g->player_count; i++)
+            {
+              if (g->players[i].points > top_points)
+              {
+                top_index = i;
+                top_points = g->players[i].points;
+              }
+            }
+            strcat(top_player, g->players[top_index].name);
+            strcat(top_player, ": ");
+            strcat(top_player, g->players[top_index].points);
+            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, self_points);
+            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, top_player);
 
             // RENDER PICTURE IN PICTURE //
             if (g->observe2) {
@@ -2503,4 +2593,27 @@ int main(int argc, char **argv) {
     glfwTerminate();
     curl_global_cleanup();
     return 0;
+}
+
+// Req. 4.0 - A health meter shall be implemented for the tank
+void take_damage (Player player, float damage)
+{
+  player.health -= damage;
+  if (player.health <= 0)
+  {
+    // Death message
+  }
+}
+
+int isDead(Player player)
+{
+  if (player.health > 0)
+    return 0;
+  else
+    return 1;
+}
+
+void respawn_all ()
+{
+  
 }
