@@ -1338,6 +1338,16 @@ void init_bullet_position(Player *player) {
   bullet->visible = true;
 }
 
+/** Test function to ensure that doxygen is working.
+ *
+ * @param a test int a
+ * @param b test float b
+ */
+void test (int a, float b)
+{
+  
+}
+
 void render_sky(Attrib *attrib, Player *player, GLuint buffer) {
     State *s = &player->state;
     float matrix[16];
