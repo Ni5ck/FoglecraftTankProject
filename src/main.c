@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <stdbool.h>
 #include "auth.h"
 #include "client.h"
 #include "config.h"
@@ -67,23 +66,12 @@ typedef struct {
 } State;
 
 typedef struct {
-    float x;
-    float y;
-    float z;
-    float dirX;
-    float dirY;
-    float dirZ;
-    bool visible;
-} Bullet;
-
-typedef struct {
     int id;
     char name[MAX_NAME_LENGTH];
     State state;
     State state1;
     State state2;
     GLuint buffer;
-    Bullet bullet;
 } Player;
 
 typedef struct {
