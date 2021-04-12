@@ -76,6 +76,7 @@ typedef struct {
     State state1;
     State state2;
     GLuint buffer;
+    int dead;
 } Player;
 
 typedef struct {
@@ -1960,18 +1961,7 @@ void handle_mouse_input() {
         glfwGetInputMode(g->window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
     static double px = 0;
     static double py = 0;
-    // Only live players should be able to move
-    Player ** alive_players;
-    int alive_count = 0;
-    for (int i = 0; i < g->player_count; i++)
-    {
-      if (!isDead(g->players[i]))
-      {
-        alive_players[alive_count] = &g->players[i];
-        alive_count++;
-      }
-    }
-    State *s = &alive_players->state;
+    State *s = &g->players->state;
     if (exclusive && (px || py)) {
         double mx, my;
         glfwGetCursorPos(g->window, &mx, &my);
@@ -2001,24 +1991,7 @@ void handle_mouse_input() {
 
 void handle_movement(double dt) {
     static float dy = 0;
-    // Only live players should be able to move
-    Player ** alive_players;
-    int alive_count = 0;
-    printf("before for", stdout);
-    for (int i = 0; i < g->player_count; i++)
-    {
-      printf("not if", stdout);
-      if (!isDead(g->players[i]))
-      {
-        printf("if 1", stdout);
-        alive_players[alive_count] = &g->players[i];
-        alive_count++;
-        printf("if 2", stdout);
-      }
-    }
-    printf("here", stdout);
-    State *s = &alive_players->state;
-    // State *s = &g->players->state;
+    State *s = &g->players->state;
     int sz = 0;
     int sx = 0;
     if (!g->typing) {
@@ -2367,11 +2340,17 @@ int main(int argc, char **argv) {
             
             // Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
             
+            // UPDATE PLAYER LIFE //
+            me->dead = isDead(*me);
+            
             // HANDLE MOUSE INPUT //
-            handle_mouse_input();
+            if (me->dead == 0)
+            {
+              handle_mouse_input();
 
             // HANDLE MOVEMENT //
-            handle_movement(dt);
+              handle_movement(dt);
+            }
 
             // HANDLE DATA FROM SERVER //
             char *buffer = client_recv();
@@ -2473,9 +2452,10 @@ int main(int argc, char **argv) {
             }
             
             // Display health text
-            char * hp_display = "HP: ";
+            char hp_display[64];
+            strcpy(hp_display, "HP: ");
             char healthText[5];
-            snprintf(healthText, sizeof healthText, "%f", g->players->health);
+            snprintf(healthText, sizeof healthText, "2%f", g->players->health);
             strcat(hp_display, healthText);
             render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, hp_display);
             // Display death message and determine how many players are left alive
@@ -2505,12 +2485,14 @@ int main(int argc, char **argv) {
             {
               respawn_all();
             }
-            char * self_points = g->players->name;
+            char self_points[64];
+            strcpy(self_points, g->players->name);
             strcat(self_points, ": ");
             strcat(self_points, g->players->points);
             
             // Check who the top player is and display their points
-            char * top_player = "(TOP) ";
+            char top_player[64];
+            strcpy(top_player, "(TOP) ");
             int top_index = 0;
             int top_points = 0;
             for (int i = 0; i < g->player_count; i++)
