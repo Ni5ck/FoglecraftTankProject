@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-struct Player;
+struct State;
 
 /**
  * A structure to represent a bullet that a player shoots.
@@ -18,7 +18,8 @@ typedef struct {
     bool visible; /**< flag indicating the bullet has been shot */
 } Bullet;
 
-void init_bullet_position(struct Player *player);
-void set_bullet_flight_vector(struct Player *player);
+void init_bullet_position(struct State *state, struct Bullet *bullet);
+void set_bullet_flight_vector(struct State *state, struct Bullet *bullet);
+void increment_bullet_position(struct Bullet *bullet);
 
 #endif // _bullet_h
