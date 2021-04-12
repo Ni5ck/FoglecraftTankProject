@@ -21,5 +21,6 @@ typedef struct {
 void init_bullet_position(struct State *state, struct Bullet *bullet);
 void set_bullet_flight_vector(struct State *state, struct Bullet *bullet);
 void increment_bullet_position(struct Bullet *bullet);
+void render_bullets(struct Attrib *attrib, struct State *state, struct Bullet *bullet);
 
 #endif // _bullet_h
