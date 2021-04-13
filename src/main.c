@@ -1,5 +1,4 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+
 #include <curl/curl.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,6 +18,7 @@
 #include "sign.h"
 #include "util.h"
 #include "world.h"
+#include "main.h"
 #include "bullet.h"
 
 #define MAX_CHUNKS 8192
@@ -59,15 +59,6 @@ typedef struct {
 } Block;
 
 typedef struct {
-    float x;
-    float y;
-    float z;
-    float rx;
-    float ry;
-    float t;
-} State;
-
-typedef struct {
     int id;
     char name[MAX_NAME_LENGTH];
     State state;
@@ -76,21 +67,6 @@ typedef struct {
     GLuint buffer;
     Bullet bullet;
 } Player;
-
-typedef struct {
-    GLuint program;
-    GLuint position;
-    GLuint normal;
-    GLuint uv;
-    GLuint matrix;
-    GLuint sampler;
-    GLuint camera;
-    GLuint timer;
-    GLuint extra1;
-    GLuint extra2;
-    GLuint extra3;
-    GLuint extra4;
-} Attrib;
 
 typedef struct {
     GLFWwindow *window;

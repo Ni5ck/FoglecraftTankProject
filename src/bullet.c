@@ -20,7 +20,7 @@ void init_bullet_position(struct State *state, struct Bullet *bullet) {
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
  */
-void set_bullet_flight_vector(struct State *state, struct Bullet *bullet) {
+void set_bullet_flight_vector(State *state, Bullet *bullet) {
     get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
 }
 
@@ -29,7 +29,7 @@ void set_bullet_flight_vector(struct State *state, struct Bullet *bullet) {
  *
  * @param bullet Structure representing the player's bullet
  */
-void increment_bullet_position(struct Bullet *bullet) {
+void increment_bullet_position(Bullet *bullet) {
     bullet->x += bullet->dirX;
     bullet->y += bullet->dirY;
     bullet->z += bullet->dirZ;
@@ -42,7 +42,7 @@ void increment_bullet_position(struct Bullet *bullet) {
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
  */
-void render_bullets(struct Attrib *attrib, struct State *state, struct Bullet *bullet) {
+void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
     float matrix[16];
     set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
     glUseProgram(attrib->program);
@@ -55,3 +55,18 @@ void render_bullets(struct Attrib *attrib, struct State *state, struct Bullet *b
     draw_cube(attrib, buffer);
     del_buffer(buffer);
 }
+
+//if (shooting)
+//{
+//    // render_bullets(&block_attrib, player);
+//    init_bullet_position(player);
+//    set_bullet_flight_vector(player);
+//
+//    shooting = false;
+//}
+//
+//if (player->bullet.visible == true)
+//{
+//    update_bullet_position(player);
+//    render_bullets(&block_attrib, player);
+//}
