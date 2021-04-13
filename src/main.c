@@ -1,4 +1,5 @@
-
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <curl/curl.h>
 #include <math.h>
 #include <stdio.h>
@@ -59,6 +60,43 @@ typedef struct {
 } Block;
 
 typedef struct {
+    float x;
+    float y;
+    float z;
+    float rx;
+    float ry;
+    float t;
+} State;
+
+typedef struct {
+    GLuint program;
+    GLuint position;
+    GLuint normal;
+    GLuint uv;
+    GLuint matrix;
+    GLuint sampler;
+    GLuint camera;
+    GLuint timer;
+    GLuint extra1;
+    GLuint extra2;
+    GLuint extra3;
+    GLuint extra4;
+} Attrib;
+
+/**
+ * A structure to represent a bullet that a player shoots.
+ */
+typedef struct {
+    float x; /**< x coordinate of bullet */
+    float y; /**< y coordinate of bullet */
+    float z; /**< z coordinate of bullet */
+    float dirX; /**< x value of direction vector */
+    float dirY; /**< y value of direction vector*/
+    float dirZ; /**< z value of direction vector */
+    bool visible; /**< flag indicating the bullet has been shot */
+} Bullet;
+
+typedef struct {
     int id;
     char name[MAX_NAME_LENGTH];
     State state;
@@ -104,6 +142,8 @@ typedef struct {
 
 static Model model;
 static Model *g = &model;
+
+bool shooting = false;
 
 int chunked(float x) {
     return floorf(roundf(x) / CHUNK_SIZE);
@@ -1691,15 +1731,17 @@ void on_left_click() {
 }
 
 void on_right_click() {
-    State *s = &g->players->state;
-    int hx, hy, hz;
-    int hw = hit_test(1, s->x, s->y, s->z, s->rx, s->ry, &hx, &hy, &hz);
-    if (hy > 0 && hy < 256 && is_obstacle(hw)) {
-        if (!player_intersects_block(2, s->x, s->y, s->z, hx, hy, hz)) {
-            set_block(hx, hy, hz, items[g->item_index]);
-            record_block(hx, hy, hz, items[g->item_index]);
-        }
-    }
+  shooting = true;
+  
+//    State *s = &g->players->state;
+//    int hx, hy, hz;
+//    int hw = hit_test(1, s->x, s->y, s->z, s->rx, s->ry, &hx, &hy, &hz);
+//    if (hy > 0 && hy < 256 && is_obstacle(hw)) {
+//        if (!player_intersects_block(2, s->x, s->y, s->z, hx, hy, hz)) {
+//            set_block(hx, hy, hz, items[g->item_index]);
+//            record_block(hx, hy, hz, items[g->item_index]);
+//        }
+//    }
 }
 
 void on_middle_click() {
@@ -2088,6 +2130,62 @@ void reset_model() {
     g->message_index = 0;
 }
 
+/**
+ * Initiate bullet's starting position by setting it to the player's position
+ *
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void init_bullet_position(State *state, Bullet *bullet) {
+  bullet->x = (float) state->x;
+  bullet->y = (float) state->y;
+  bullet->z = (float) state->z;
+  bullet->visible = true;
+}
+
+/**
+ * Set the direction vector of the bullet based on the sight vector of the player
+ * when the bullet is shot.
+ *
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void set_bullet_flight_vector(State *state, Bullet *bullet) {
+    get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+}
+
+/**
+ * Increment the bullet's coordinates by it's direction vector.
+ *
+ * @param bullet Structure representing the player's bullet
+ */
+void increment_bullet_position(Bullet *bullet) {
+    bullet->x += bullet->dirX;
+    bullet->y += bullet->dirY;
+    bullet->z += bullet->dirZ;
+}
+
+/**
+ * Render bullet in window.
+ *
+ * @param attrib The program's openGL attributes
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    float matrix[16];
+    set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
+    glUseProgram(attrib->program);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glUniformMatrix4fv(attrib->matrix, 1, GL_FALSE, matrix);
+    glUniform3f(attrib->camera, state->x, state->y, state->z);
+    glUniform1i(attrib->sampler, 0);
+    int bulletItem = items[0];
+    GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
+    draw_cube(attrib, buffer);
+    del_buffer(buffer);
+}
+
 int main(int argc, char **argv) {
     // INITIALIZATION //
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -2327,6 +2425,20 @@ int main(int argc, char **argv) {
             render_players(&block_attrib, player);
             if (SHOW_WIREFRAME) {
                 render_wireframe(&line_attrib, player);
+            }
+          
+            if (shooting)
+            {
+              init_bullet_position(&player->state, &player->bullet);
+              set_bullet_flight_vector(&player->state, &player->bullet);
+              
+              shooting = false;
+            }
+          
+            if (player->bullet.visible == true)
+            {
+              increment_bullet_position(&player->bullet);
+              render_bullet(&block_attrib, &player->state, &player->bullet);
             }
 
             // RENDER HUD //
