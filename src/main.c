@@ -19,8 +19,6 @@
 #include "sign.h"
 #include "util.h"
 #include "world.h"
-#include "main.h"
-#include "bullet.h"
 
 #define MAX_CHUNKS 8192
 #define MAX_PLAYERS 128
@@ -94,6 +92,7 @@ typedef struct {
     float dirY; /**< y value of direction vector*/
     float dirZ; /**< z value of direction vector */
     bool visible; /**< flag indicating the bullet has been shot */
+    bool shoot;
 } Bullet;
 
 typedef struct {
@@ -142,8 +141,6 @@ typedef struct {
 
 static Model model;
 static Model *g = &model;
-
-bool shooting = false;
 
 int chunked(float x) {
     return floorf(roundf(x) / CHUNK_SIZE);
@@ -1731,17 +1728,8 @@ void on_left_click() {
 }
 
 void on_right_click() {
-  shooting = true;
-  
-//    State *s = &g->players->state;
-//    int hx, hy, hz;
-//    int hw = hit_test(1, s->x, s->y, s->z, s->rx, s->ry, &hx, &hy, &hz);
-//    if (hy > 0 && hy < 256 && is_obstacle(hw)) {
-//        if (!player_intersects_block(2, s->x, s->y, s->z, hx, hy, hz)) {
-//            set_block(hx, hy, hz, items[g->item_index]);
-//            record_block(hx, hy, hz, items[g->item_index]);
-//        }
-//    }
+  Player *player = &g->players;
+  player->bullet.shoot = true;
 }
 
 void on_middle_click() {
@@ -2427,12 +2415,12 @@ int main(int argc, char **argv) {
                 render_wireframe(&line_attrib, player);
             }
           
-            if (shooting)
+            if (player->bullet.shoot)
             {
               init_bullet_position(&player->state, &player->bullet);
               set_bullet_flight_vector(&player->state, &player->bullet);
               
-              shooting = false;
+              player->bullet.shoot = false;
             }
           
             if (player->bullet.visible == true)
