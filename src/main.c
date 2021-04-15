@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <assert.h>
 #include "auth.h"
 #include "client.h"
 #include "config.h"
@@ -2125,10 +2126,12 @@ void reset_model() {
  * @param bullet Structure representing the player's bullet
  */
 void init_bullet_position(State *state, Bullet *bullet) {
-  bullet->x = (float) state->x;
-  bullet->y = (float) state->y;
-  bullet->z = (float) state->z;
-  bullet->visible = true;
+    assert(bullet != NULL);
+    assert(state != NULL);
+    bullet->x = (float) state->x;
+    bullet->y = (float) state->y;
+    bullet->z = (float) state->z;
+    bullet->visible = true;
 }
 
 /**
@@ -2139,6 +2142,8 @@ void init_bullet_position(State *state, Bullet *bullet) {
  * @param bullet Structure representing the player's bullet
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
+    assert(state != NULL);
+    assert(buller != NULL);
     get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
 }
 
@@ -2148,6 +2153,7 @@ void set_bullet_flight_vector(State *state, Bullet *bullet) {
  * @param bullet Structure representing the player's bullet
  */
 void increment_bullet_position(Bullet *bullet) {
+    assert(bullet != NULL);
     bullet->x += bullet->dirX;
     bullet->y += bullet->dirY;
     bullet->z += bullet->dirZ;
@@ -2161,6 +2167,9 @@ void increment_bullet_position(Bullet *bullet) {
  * @param bullet Structure representing the player's bullet
  */
 void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    assert(attrib != NULL);
+    assert(state != NULL);
+    assert(bullet != NULL);
     float matrix[16];
     set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
     glUseProgram(attrib->program);
