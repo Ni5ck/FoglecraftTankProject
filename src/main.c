@@ -2146,6 +2146,41 @@ void reset_model() {
     g->message_index = 0;
 }
 
+// Req. 4.0 - A health meter shall be implemented for the tank
+void take_damage (Player player, float damage)
+{
+  player.health -= damage;
+  if (player.health <= 0)
+  {
+    // Death message
+    player.health = 0;
+    player.dead = 1;
+  }
+}
+
+int isDead (Player player)
+{
+  if (player.health > 0)
+    return 0;
+  else
+    return 1;
+}
+
+void respawn_all ()
+{
+  for (int i = 0; i < g->player_count; i++)
+  {
+    int nx = g->respawn_locations[i*3];
+    int ny = g->respawn_locations[(i*3)+1];
+    int nz = g->respawn_locations[(i*3)+2];
+    g->players[i].state.x = nx;
+    g->players[i].state.y = ny;
+    g->players[i].state.z = nz;
+    g->players[i].health = MAX_HEALTH;
+    g->players[i].dead = 0;
+  }
+}
+
 int main(int argc, char **argv) {
     // INITIALIZATION //
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -2316,6 +2351,7 @@ int main(int argc, char **argv) {
         me->name[0] = '\0';
         me->buffer = 0;
         g->player_count = 1;
+        me->health = MAX_HEALTH;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
@@ -2339,7 +2375,7 @@ int main(int argc, char **argv) {
             previous = now;
             
             // Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
-            
+            printf("I made it this far");
             // UPDATE PLAYER LIFE //
             me->dead = isDead(*me);
             
@@ -2455,16 +2491,17 @@ int main(int argc, char **argv) {
             char hp_display[64];
             strcpy(hp_display, "HP: ");
             char healthText[5];
-            snprintf(healthText, sizeof healthText, "2%f", g->players->health);
+            snprintf(healthText, sizeof healthText, "%.2f", g->players->health);
             strcat(hp_display, healthText);
             render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, hp_display);
             // Display death message and determine how many players are left alive
-            char * death_message = "You Died.\nWaiting for this round to end.";
+            char death_message[64];
+            strcpy(death_message, "You Died.\nWaiting for this round to end.");
             int players_alive = g->player_count;
             Player *last_alive;
             for (int i = 0; i < g->player_count; i++)
             {
-              if (isDead(&g->players[i]))
+              if (isDead(g->players[i]))
               {
                 players_alive--;
                 // Display text only to one player
@@ -2575,27 +2612,4 @@ int main(int argc, char **argv) {
     glfwTerminate();
     curl_global_cleanup();
     return 0;
-}
-
-// Req. 4.0 - A health meter shall be implemented for the tank
-void take_damage (Player player, float damage)
-{
-  player.health -= damage;
-  if (player.health <= 0)
-  {
-    // Death message
-  }
-}
-
-int isDead(Player player)
-{
-  if (player.health > 0)
-    return 0;
-  else
-    return 1;
-}
-
-void respawn_all ()
-{
-  
 }
