@@ -2352,6 +2352,7 @@ int main(int argc, char **argv) {
         me->buffer = 0;
         g->player_count = 1;
         me->health = MAX_HEALTH;
+        me->points = 0;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
@@ -2375,7 +2376,7 @@ int main(int argc, char **argv) {
             previous = now;
             
             // Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
-            printf("I made it this far");
+
             // UPDATE PLAYER LIFE //
             me->dead = isDead(*me);
             
@@ -2511,22 +2512,27 @@ int main(int argc, char **argv) {
                 last_alive = &g->players[i];
               }
             }
+
+            // This is causing player to respawn in every loop
             
             // Handle point distribution and display points
-            if (players_alive == 1)
-            {
-              last_alive->points++;
-              respawn_all();
-            }
-            else if (players_alive == 0)
-            {
-              respawn_all();
-            }
-            char self_points[64];
+//            if (players_alive == 1)
+//            {
+//              last_alive->points++;
+//              respawn_all();
+//            }
+//            else if (players_alive == 0)
+//            {
+//              respawn_all();
+//            }
+            char self_points[256];
             strcpy(self_points, g->players->name);
             strcat(self_points, ": ");
-            strcat(self_points, g->players->points);
-            
+            // this was the first seg fault
+            char points_str[2];
+            sprintf(points_str, "%i", g->players->points);
+            strcat(self_points, points_str);
+
             // Check who the top player is and display their points
             char top_player[64];
             strcpy(top_player, "(TOP) ");
@@ -2542,7 +2548,9 @@ int main(int argc, char **argv) {
             }
             strcat(top_player, g->players[top_index].name);
             strcat(top_player, ": ");
-            strcat(top_player, g->players[top_index].points);
+            // second seg fault
+            sprintf(points_str, "%i", g->players[top_index].points);
+            strcat(top_player, points_str);
             render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, self_points);
             render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, top_player);
 
