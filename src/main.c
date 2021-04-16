@@ -92,6 +92,8 @@ typedef struct {
     float dirX; /**< x value of direction vector */
     float dirY; /**< y value of direction vector*/
     float dirZ; /**< z value of direction vector */
+    float rx;
+    float ry;
     bool visible; /**< flag indicating the bullet has been shot */
     bool shoot;
 } Bullet;
@@ -608,7 +610,7 @@ int hit_test(
             continue;
         }
         int hx, hy, hz;
-        int hw = _hit_test(&chunk->map, 8, previous,
+        int hw = _hit_test(&chunk->map, 1, previous,
             x, y, z, vx, vy, vz, &hx, &hy, &hz);
         if (hw > 0) {
             float d = sqrtf(
@@ -2131,6 +2133,8 @@ void init_bullet_position(State *state, Bullet *bullet) {
     bullet->x = (float) state->x;
     bullet->y = (float) state->y;
     bullet->z = (float) state->z;
+    bullet->rx = state->rx;
+    bullet->ry = state->ry;
     bullet->visible = true;
 }
 
@@ -2143,7 +2147,7 @@ void init_bullet_position(State *state, Bullet *bullet) {
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
     assert(state != NULL);
-    assert(buller != NULL);
+    assert(bullet != NULL);
     get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
 }
 
@@ -2181,6 +2185,44 @@ void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
     GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
     draw_cube(attrib, buffer);
     del_buffer(buffer);
+}
+
+bool bullet_hit(Bullet *bullet)
+{
+    int hx, hy, hz;
+    int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
+    if (hy > 0 && hy < 256 && is_destructable(hw))
+    {
+//        Block block = {hx, hy, hz, hw};
+//        sphere(&block, 1, 5, 0, 0, 0);
+        
+//        for (int i = -2; i < 2; i+=2)
+//        {
+//            for (int j = -1; j < 1; j+=2)
+//            {
+//                for (int k = -3; k < 3; k++)
+//                {
+//                    set_block(hx+i, hy+j, hz+k, 0);
+//                }
+//            }
+//        }
+        
+        for (int i = -3; i < 3; i++)
+        {
+            set_block(hx+i, hy, hz, 0);
+        }
+        
+        for (int i = -3; i < 3; i++)
+        {
+            set_block(hx, hy+i, hz, 0);
+        }
+        
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -2426,16 +2468,18 @@ int main(int argc, char **argv) {
           
             if (player->bullet.shoot)
             {
-              init_bullet_position(&player->state, &player->bullet);
-              set_bullet_flight_vector(&player->state, &player->bullet);
+                init_bullet_position(&player->state, &player->bullet);
+                set_bullet_flight_vector(&player->state, &player->bullet);
               
-              player->bullet.shoot = false;
+                player->bullet.shoot = false;
             }
           
             if (player->bullet.visible == true)
             {
-              increment_bullet_position(&player->bullet);
-              render_bullet(&block_attrib, &player->state, &player->bullet);
+                increment_bullet_position(&player->bullet);
+                render_bullet(&block_attrib, &player->state, &player->bullet);
+                if (bullet_hit(&player->bullet))
+                    player->bullet.visible = false;
             }
 
             // RENDER HUD //
