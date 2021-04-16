@@ -1,3 +1,5 @@
+Requirements
+
 Req. 1.0 - The game shall spawn players into a preconstructed arena
 Req. 2.0 - The controls shall be overridden to allow for special tank controls (1)
 Req. 2.1 - Tank movement
@@ -8,7 +10,7 @@ Req. 2.1.4 - Tank will move backwards when ‘S’ is pressed
 Req. 2.1.5 - Tank will rotate with mouse movement
 Req. 2.2 - Tank shooting
     Req. 2.2.1 - Tank will shoot where the retical mouse is pointing 
-Req. 2.2.2 - Tank will shoot (spawn a bullet) when the left mouse button is pressed (single finger    click for mouse pad)
+Req. 2.2.2 - Tank will shoot (spawn a bullet) when the left mouse button is pressgmiaed (single finger    click for mouse pad)
 Req. 3.0 - A bullet graphic shall be implemented to show the bullet’s location
 Req. 3.1 - The bullet shall move in a straight line in the direction the turret is facing
 Req. 4.0 - A health meter shall be implemented for the tank (3) -N
@@ -38,3 +40,41 @@ Req. 15.0 - Disable erroneous features from project that the game was forked fro
 Req. 15.1 - Disable flying feature
 Req. 15.2 - Disable teleporting to another user
 Req. 15.3 - Disable teleporting to a specific chunk
+
+*Numbers in parentheses determine priority of completion
+
+Key Ideas
+There will be an angle for the player controlled by the mouse that will also be used to control the direction that the bullet shoots
+There will be an angle that the tank is facing separate from the player angle that will determine which direction the tank will move when the up and down controls are pressed. The tank angle will be adjusted by the left and right controls.
+The player model should be swapped with the tank model in the render_players function
+Make a render_bullet function to be called in the main while loop
+Edit on_left_click and on_right_click to allow for shooting
+Look into OpenGL
+
+
+
+Task List:
+
+(CLOSED: Feb 17) Task 2: Contemplate requirements and the priorities assigned to each requirement 
+
+(CLOSED: Mar 11) Task 3: Create a server for multiple instances of craft to connect to in order to have multiple players in the same environment. (Req. 13.0) Assigned: Zac, Due: March 25.
+
+(CLOSED: Mar 24) Task 4: Research implement health meter requirements including Req. 4.0 and 4.1. Assigned: Nick, Due: Mar 25.
+
+(Closed: Mar 25) Task 5: Research implement point system requirements including Req. 4.1.1, Req. 4.1.2, and Req. 12.0. Assigned: Nick, Due Mar. 25.
+
+(CLOSED: Mar 17) Task 6: Override player movement controls to allow for special tank controls (handle_movement in main) (Req 2.1) Assigned: Zac, Due: Mar. 17
+
+Closed (April 6) (Moved to Zac: Due April 6) Task 7: Work and implement the tank’s bullet and its linear movement (Req 3.0-3.1). Assigned: Angelo, Due: March 17.
+
+(Moved to Zac: Due 22)  Due Task 8: Work and implement the bullet’s block destruction with the random influenced equation (Req 7.0-7.1). Assigned: Angelo, Due: March 25.
+
+Task 9: Implement a death mechanism to meet Req. 4.1.1, Req. 4.1.2, and Req. 4.1.3. Assigned to Nick, Due: Apr. 15
+
+(Closed: Mar 25) Task 10: Create a timer to display countdown until the game starts. (Req. 13.1) Assigned: Zac, Due March 25
+
+Task 11: Test and debug health, death, and points (Req. 4.0, 4.1, 12.0). Assigned to Nick. Due Apr 15.
+
+Task 12: Implement respawning locations for players as a part of Req. 5.0 & 5.1. Assigned to Nick. Due Apr 15.
+
+Task 13: Create doxyfile. Assigned Zac Due April 15 (Completed April 12) 
