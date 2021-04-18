@@ -128,6 +128,7 @@ typedef struct {
     Block block1;
     Block copy0;
     Block copy1;
+    int round_in_progress;
 } Model;
 
 static Model model;
@@ -2353,6 +2354,7 @@ int main(int argc, char **argv) {
         g->player_count = 1;
         me->health = MAX_HEALTH;
         me->points = 0;
+        g->round_in_progress = 0;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
@@ -2488,16 +2490,29 @@ int main(int argc, char **argv) {
                 }
             }
             
+            if (g->player_count >= 2)
+            {
+              g->round_in_progress = 1;
+            }
+            if (g->round_in_progress == 0)
+            {
+              char waiting_text[64] = "Waiting for more players to begin round.";
+              render_text(&text_attrib, ALIGN_CENTER, g->width * 1/2, g->height * 14/24, ts, waiting_text);
+            }
             // Display health text
             char hp_display[64];
             strcpy(hp_display, "HP: ");
             char healthText[5];
             snprintf(healthText, sizeof healthText, "%.2f", g->players->health);
             strcat(hp_display, healthText);
-            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, hp_display);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 5/6, g->height * 1/12, ts, hp_display);
             // Display death message and determine how many players are left alive
             char death_message[64];
-            strcpy(death_message, "You Died.\nWaiting for this round to end.");
+            strcpy(death_message, "You Died. Waiting for this round to end.");
+            if (me->dead == 1)
+            {
+              render_text(&text_attrib, ALIGN_CENTER, g->width * 1/2, g->height * 13/24, ts, death_message);
+            }
             int players_alive = g->player_count;
             Player *last_alive;
             for (int i = 0; i < g->player_count; i++)
@@ -2505,30 +2520,29 @@ int main(int argc, char **argv) {
               if (isDead(g->players[i]))
               {
                 players_alive--;
-                // Display text only to one player
               }
               else
               {
                 last_alive = &g->players[i];
               }
             }
-
-            // This is causing player to respawn in every loop
             
             // Handle point distribution and display points
-//            if (players_alive == 1)
-//            {
-//              last_alive->points++;
-//              respawn_all();
-//            }
-//            else if (players_alive == 0)
-//            {
-//              respawn_all();
-//            }
+            if (g->round_in_progress == 1)
+            {
+              if (players_alive == 1)
+              {
+                last_alive->points++;
+                respawn_all();
+              }
+              else if (players_alive == 0)
+              {
+                respawn_all();
+              }
+            }
             char self_points[256];
-            strcpy(self_points, g->players->name);
+            strcpy(self_points, "You");
             strcat(self_points, ": ");
-            // this was the first seg fault
             char points_str[2];
             sprintf(points_str, "%i", g->players->points);
             strcat(self_points, points_str);
@@ -2548,11 +2562,10 @@ int main(int argc, char **argv) {
             }
             strcat(top_player, g->players[top_index].name);
             strcat(top_player, ": ");
-            // second seg fault
             sprintf(points_str, "%i", g->players[top_index].points);
             strcat(top_player, points_str);
-            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, self_points);
-            render_text(&text_attrib, ALIGN_RIGHT, tx, ty, ts, top_player);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 10/12, g->height * 22/24, ts, self_points);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 10/12, g->height * 21/24, ts, top_player);
 
             // RENDER PICTURE IN PICTURE //
             if (g->observe2) {
