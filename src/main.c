@@ -70,21 +70,6 @@ typedef struct {
 } State;
 
 typedef struct {
-<<<<<<< HEAD
-    int id;
-    char name[MAX_NAME_LENGTH];
-    float health;
-    int points;
-    State state;
-    State state1;
-    State state2;
-    GLuint buffer;
-    int dead;
-} Player;
-
-typedef struct {
-=======
->>>>>>> 746fbc35821805e72c008af9beb454edff6ced54
     GLuint program;
     GLuint position;
     GLuint normal;
@@ -121,6 +106,9 @@ typedef struct {
     State state2;
     GLuint buffer;
     Bullet bullet;
+    float health;
+    int points;
+    int dead;
 } Player;
 
 typedef struct {
