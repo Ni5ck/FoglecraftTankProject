@@ -1555,6 +1555,55 @@ void sphere(Block *center, int radius, int fill, int fx, int fy, int fz) {
     }
 }
 
+void empty_sphere(Block *center, int radius, int fill, int fx, int fy, int fz) {
+    static float offsets[8][3] = {
+        {-0.5, -0.5, -0.5},
+        {-0.5, -0.5, 0.5},
+        {-0.5, 0.5, -0.5},
+        {-0.5, 0.5, 0.5},
+        {0.5, -0.5, -0.5},
+        {0.5, -0.5, 0.5},
+        {0.5, 0.5, -0.5},
+        {0.5, 0.5, 0.5}
+    };
+    int cx = center->x;
+    int cy = center->y;
+    int cz = center->z;
+    int w = center->w;
+    for (int x = cx - radius; x <= cx + radius; x++) {
+        if (fx && x != cx) {
+            continue;
+        }
+        for (int y = cy - radius; y <= cy + radius; y++) {
+            if (fy && y != cy) {
+                continue;
+            }
+            for (int z = cz - radius; z <= cz + radius; z++) {
+                if (fz && z != cz) {
+                    continue;
+                }
+                int inside = 0;
+                int outside = fill;
+                for (int i = 0; i < 8; i++) {
+                    float dx = x + offsets[i][0] - cx;
+                    float dy = y + offsets[i][1] - cy;
+                    float dz = z + offsets[i][2] - cz;
+                    float d = sqrtf(dx * dx + dy * dy + dz * dz);
+                    if (d < radius) {
+                        inside = 1;
+                    }
+                    else {
+                        outside = 1;
+                    }
+                }
+                if (inside && outside) {
+                    builder_block(x, y, z, 0);
+                }
+            }
+        }
+    }
+}
+
 void cylinder(Block *b1, Block *b2, int radius, int fill) {
     if (b1->w != b2->w) {
         return;
@@ -2122,6 +2171,7 @@ void reset_model() {
 }
 
 /**
+ * Req.  3.1
  * Initiate bullet's starting position by setting it to the player's position
  *
  * @param state Structure containing a player's position
@@ -2136,9 +2186,13 @@ void init_bullet_position(State *state, Bullet *bullet) {
     bullet->rx = state->rx;
     bullet->ry = state->ry;
     bullet->visible = true;
+  
+  // printf("Player position: x (%.2f) y (%.2f) z (%.2f)\n", state->x, state->y, state->z);
+  // printf("Bullet init position x (%.2f) y (%.2f) z (%.2f)\n", bullet->x, bullet->y, bullet->z);
 }
 
 /**
+ * Req. 3.1
  * Set the direction vector of the bullet based on the sight vector of the player
  * when the bullet is shot.
  *
@@ -2152,18 +2206,26 @@ void set_bullet_flight_vector(State *state, Bullet *bullet) {
 }
 
 /**
+ * Req 3.1
  * Increment the bullet's coordinates by it's direction vector.
  *
  * @param bullet Structure representing the player's bullet
  */
 void increment_bullet_position(Bullet *bullet) {
     assert(bullet != NULL);
+  
+//    printf("Bullet Position: x (%.2f) y (.2f) z (%.2f)", bullet->x, bullet->y, bullet->z);
+//    printf("Increment: x (%.2f) y (%.2f) z (%.2f)", bullet->dirX, bullet->dirY, bullet->dirZ);
+    
     bullet->x += bullet->dirX;
     bullet->y += bullet->dirY;
     bullet->z += bullet->dirZ;
+  
+//    printf("Bullet Position: x (%.2f) y (.2f) z (%.2f)", bullet->x, bullet->y, bullet->z);
 }
 
 /**
+ * Req 3.0
  * Render bullet in window.
  *
  * @param attrib The program's openGL attributes
@@ -2187,37 +2249,26 @@ void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
     del_buffer(buffer);
 }
 
+void explode_blocks(int x, int y, int z, int w)
+{
+  Block block = {x, y, z, w};
+  int random = rand() % 4 + 1; // Req 7.1
+  empty_sphere(&block, random, 5, 0, 0, 0);
+}
+
+/**
+ * Req 7.0
+ * Test to see if a bullet has hit an object.
+ *
+ */
 bool bullet_hit(Bullet *bullet)
 {
     int hx, hy, hz;
     int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
     if (hy > 0 && hy < 256 && is_destructable(hw))
     {
-//        Block block = {hx, hy, hz, hw};
-//        sphere(&block, 1, 5, 0, 0, 0);
-        
-//        for (int i = -2; i < 2; i+=2)
-//        {
-//            for (int j = -1; j < 1; j+=2)
-//            {
-//                for (int k = -3; k < 3; k++)
-//                {
-//                    set_block(hx+i, hy+j, hz+k, 0);
-//                }
-//            }
-//        }
-        
-        for (int i = -3; i < 3; i++)
-        {
-            set_block(hx+i, hy, hz, 0);
-        }
-        
-        for (int i = -3; i < 3; i++)
-        {
-            set_block(hx, hy+i, hz, 0);
-        }
-        
-        return true;
+      explode_blocks(hx, hy, hz, hw);
+      return true;
     }
     else
     {
