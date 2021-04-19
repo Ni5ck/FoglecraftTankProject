@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
+#include <assert.h>
 #include "auth.h"
 #include "client.h"
 #include "config.h"
@@ -68,6 +70,7 @@ typedef struct {
 } State;
 
 typedef struct {
+<<<<<<< HEAD
     int id;
     char name[MAX_NAME_LENGTH];
     float health;
@@ -80,6 +83,8 @@ typedef struct {
 } Player;
 
 typedef struct {
+=======
+>>>>>>> 746fbc35821805e72c008af9beb454edff6ced54
     GLuint program;
     GLuint position;
     GLuint normal;
@@ -93,6 +98,30 @@ typedef struct {
     GLuint extra3;
     GLuint extra4;
 } Attrib;
+
+/**
+ * A structure to represent a bullet that a player shoots.
+ */
+typedef struct {
+    float x; /**< x coordinate of bullet */
+    float y; /**< y coordinate of bullet */
+    float z; /**< z coordinate of bullet */
+    float dirX; /**< x value of direction vector */
+    float dirY; /**< y value of direction vector*/
+    float dirZ; /**< z value of direction vector */
+    bool visible; /**< flag indicating the bullet has been shot */
+    bool shoot;
+} Bullet;
+
+typedef struct {
+    int id;
+    char name[MAX_NAME_LENGTH];
+    State state;
+    State state1;
+    State state2;
+    GLuint buffer;
+    Bullet bullet;
+} Player;
 
 typedef struct {
     GLFWwindow *window;
@@ -113,7 +142,6 @@ typedef struct {
     int height;
     int observe1;
     int observe2;
-    int flying;
     int item_index;
     int scale;
     int ortho;
@@ -180,34 +208,16 @@ void get_sight_vector(float rx, float ry, float *vx, float *vy, float *vz) {
     *vz = sinf(rx - RADIANS(90)) * m;
 }
 
-void get_motion_vector(int flying, int sz, int sx, float rx, float ry,
+void get_motion_vector(int sz, int sx, float rx, float ry,
     float *vx, float *vy, float *vz) {
     *vx = 0; *vy = 0; *vz = 0;
     if (!sz && !sx) {
         return;
     }
     float strafe = atan2f(sz, sx);
-    if (flying) {
-        float m = cosf(ry);
-        float y = sinf(ry);
-        if (sx) {
-            if (!sz) {
-                y = 0;
-            }
-            m = 1;
-        }
-        if (sz > 0) {
-            y = -y;
-        }
-        *vx = cosf(rx + strafe) * m;
-        *vy = y;
-        *vz = sinf(rx + strafe) * m;
-    }
-    else {
-        *vx = cosf(rx + strafe);
-        *vy = 0;
-        *vz = sinf(rx + strafe);
-    }
+    *vx = cosf(rx + strafe);
+    *vy = 0;
+    *vz = sinf(rx + strafe);
 }
 
 GLuint gen_crosshair_buffer() {
@@ -1738,15 +1748,8 @@ void on_left_click() {
 }
 
 void on_right_click() {
-    State *s = &g->players->state;
-    int hx, hy, hz;
-    int hw = hit_test(1, s->x, s->y, s->z, s->rx, s->ry, &hx, &hy, &hz);
-    if (hy > 0 && hy < 256 && is_obstacle(hw)) {
-        if (!player_intersects_block(2, s->x, s->y, s->z, hx, hy, hz)) {
-            set_block(hx, hy, hz, items[g->item_index]);
-            record_block(hx, hy, hz, items[g->item_index]);
-        }
-    }
+  Player *player = &g->players;
+  player->bullet.shoot = true;
 }
 
 void on_middle_click() {
@@ -1834,9 +1837,6 @@ void on_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
         }
     }
     if (!g->typing) {
-        if (key == CRAFT_KEY_FLY) {
-            g->flying = !g->flying;
-        }
         if (key >= '1' && key <= '9') {
             g->item_index = key - '1';
         }
@@ -2001,26 +2001,23 @@ void handle_movement(double dt) {
         g->fov = glfwGetKey(g->window, CRAFT_KEY_ZOOM) ? 15 : 65;
         if (glfwGetKey(g->window, CRAFT_KEY_FORWARD)) sz--;
         if (glfwGetKey(g->window, CRAFT_KEY_BACKWARD)) sz++;
-        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) sx--;
-        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) sx++;
+        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) s->rx -= m;
+        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_LEFT)) s->rx -= m;
         if (glfwGetKey(g->window, GLFW_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_UP)) s->ry += m;
         if (glfwGetKey(g->window, GLFW_KEY_DOWN)) s->ry -= m;
     }
     float vx, vy, vz;
-    get_motion_vector(g->flying, sz, sx, s->rx, s->ry, &vx, &vy, &vz);
+    get_motion_vector(sz, sx, s->rx, s->ry, &vx, &vy, &vz);
     if (!g->typing) {
         if (glfwGetKey(g->window, CRAFT_KEY_JUMP)) {
-            if (g->flying) {
-                vy = 1;
-            }
-            else if (dy == 0) {
+            if (dy == 0) {
                 dy = 8;
             }
         }
     }
-    float speed = g->flying ? 20 : 5;
+    float speed = 5;
     int estimate = roundf(sqrtf(
         powf(vx * speed, 2) +
         powf(vy * speed + ABS(dy) * 2, 2) +
@@ -2031,13 +2028,8 @@ void handle_movement(double dt) {
     vy = vy * ut * speed;
     vz = vz * ut * speed;
     for (int i = 0; i < step; i++) {
-        if (g->flying) {
-            dy = 0;
-        }
-        else {
-            dy -= ut * 25;
-            dy = MAX(dy, -250);
-        }
+        dy -= ut * 25;
+        dy = MAX(dy, -250);
         s->x += vx;
         s->y += vy + dy * ut;
         s->z += vz;
@@ -2139,7 +2131,6 @@ void reset_model() {
     g->player_count = 0;
     g->observe1 = 0;
     g->observe2 = 0;
-    g->flying = 0;
     g->item_index = 0;
     memset(g->typing_buffer, 0, sizeof(char) * MAX_TEXT_LENGTH);
     g->typing = 0;
@@ -2180,6 +2171,70 @@ void respawn_all ()
     g->players[i].health = MAX_HEALTH;
     g->players[i].dead = 0;
   }
+}
+  
+/**
+ * Initiate bullet's starting position by setting it to the player's position
+ *
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void init_bullet_position(State *state, Bullet *bullet) {
+    assert(bullet != NULL);
+    assert(state != NULL);
+    bullet->x = (float) state->x;
+    bullet->y = (float) state->y;
+    bullet->z = (float) state->z;
+    bullet->visible = true;
+}
+
+/**
+ * Set the direction vector of the bullet based on the sight vector of the player
+ * when the bullet is shot.
+ *
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void set_bullet_flight_vector(State *state, Bullet *bullet) {
+    assert(state != NULL);
+    assert(buller != NULL);
+    get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+}
+
+/**
+ * Increment the bullet's coordinates by it's direction vector.
+ *
+ * @param bullet Structure representing the player's bullet
+ */
+void increment_bullet_position(Bullet *bullet) {
+    assert(bullet != NULL);
+    bullet->x += bullet->dirX;
+    bullet->y += bullet->dirY;
+    bullet->z += bullet->dirZ;
+}
+
+/**
+ * Render bullet in window.
+ *
+ * @param attrib The program's openGL attributes
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ */
+void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    assert(attrib != NULL);
+    assert(state != NULL);
+    assert(bullet != NULL);
+    float matrix[16];
+    set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
+    glUseProgram(attrib->program);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glUniformMatrix4fv(attrib->matrix, 1, GL_FALSE, matrix);
+    glUniform3f(attrib->camera, state->x, state->y, state->z);
+    glUniform1i(attrib->sampler, 0);
+    int bulletItem = items[0];
+    GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
+    draw_cube(attrib, buffer);
+    del_buffer(buffer);
 }
 
 int main(int argc, char **argv) {
@@ -2432,6 +2487,20 @@ int main(int argc, char **argv) {
             render_players(&block_attrib, player);
             if (SHOW_WIREFRAME) {
                 render_wireframe(&line_attrib, player);
+            }
+          
+            if (player->bullet.shoot)
+            {
+              init_bullet_position(&player->state, &player->bullet);
+              set_bullet_flight_vector(&player->state, &player->bullet);
+              
+              player->bullet.shoot = false;
+            }
+          
+            if (player->bullet.visible == true)
+            {
+              increment_bullet_position(&player->bullet);
+              render_bullet(&block_attrib, &player->state, &player->bullet);
             }
 
             // RENDER HUD //

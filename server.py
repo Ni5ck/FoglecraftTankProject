@@ -15,7 +15,7 @@ import traceback
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 4080
 
-DB_PATH = 'team11_craft.db'
+DB_PATH = 'craft.db'
 LOG_PATH = 'log.txt'
 
 CHUNK_SIZE = 32
@@ -24,7 +24,7 @@ COMMIT_INTERVAL = 5
 
 SPAWN_POINT = (0, 0, 0, 0, 0)
 RATE_LIMIT = False
-RECORD_HISTORY = False
+RECORD_HISTORY = False        
 INDESTRUCTIBLE_ITEMS = set([16])
 ALLOWED_ITEMS = set([
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
@@ -161,6 +161,9 @@ class Handler(socketserver.BaseRequestHandler):
         self.send_raw(packet(*args))
 
 class Model(object):
+    #clientCount = 0
+    #clientStart = 0
+
     def __init__(self, seed):
         self.world = World(seed)
         self.clients = []
@@ -181,6 +184,7 @@ class Model(object):
             (re.compile(r'^/help(?:\s+(\S+))?$'), self.on_help),
             (re.compile(r'^/list$'), self.on_list),
         ]
+        self.gameStarted = False
     def start(self):
         thread = threading.Thread(target=self.run)
         thread.setDaemon(True)
@@ -265,14 +269,20 @@ class Model(object):
             result += 1
         return result
     def on_connect(self, client):
+        #clientCount += 1
+        #if (clientCount < 2):
+         #   client.send(TALK, 'Waiting for more players to start game.')
+        #else:
+        #    client.send(TALK, 'COUNTDOWN TO GAME START: ')
         client.client_id = self.next_client_id()
         client.nick = 'guest%d' % client.client_id
         log('CONN', client.client_id, *client.client_address)
         client.position = SPAWN_POINT
         self.clients.append(client)
         client.send(YOU, client.client_id, *client.position)
-        client.send(TALK, 'Welcome to Craft!')
-        client.send(TALK, 'Type "/help" for a list of commands.')
+        #client.send(TALK, 'Welcome to Craft!')
+        #client.send(TALK, 'Type "/help" for a list of commands.')
+        #client.send(TALK, 'COUNTDOWN TO GAME START: ')
         self.send_position(client)
         self.send_positions(client)
         self.send_nick(client)
@@ -318,6 +328,20 @@ class Model(object):
         self.send_nick(client)
         # TODO: has left message if was already authenticated
         self.send_talk('%s has joined the game.' % client.nick)
+        self.check_if_enough_players_to_play()
+    def check_if_enough_players_to_play(self):
+        clientCount = len(self.clients)
+        if clientCount < 2:
+            self.send_talk('Waiting for more players to start game')
+        elif clientCount == 2:
+            thread = threading.Thread(target=self.game_countdown)
+            thread.start()
+    def game_countdown(self):
+        for count in range(60, 0, -1):
+            self.send_talk('Game starting in %i seconds' % count)
+            time.sleep(1)
+        self.send_talk('The game has begun!!!')
+        self.gameStarted = True
     def on_chunk(self, client, p, q, key=0):
         packets = []
         p, q, key = map(int, (p, q, key))
