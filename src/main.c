@@ -35,6 +35,14 @@
 #define MODE_OFFLINE 0
 #define MODE_ONLINE 1
 
+/**
+ * Comapare floats to ensure they are within 0.1 in order to assume they are equal for asserting post conditions.
+ */
+bool floatEquals(float a, float b)
+{
+    return fabs(a - b) < 0.1;
+}
+
 typedef struct {
     Map map;
     SignList signs;
@@ -2176,16 +2184,29 @@ void reset_model() {
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre State and bullet are not null
+ * @post Bullet x, y, z, rx, ry is set to state's x, y, z, rx, ry, bullet is set to true
  */
 void init_bullet_position(State *state, Bullet *bullet) {
+    // Preconditon
     assert(bullet != NULL);
     assert(state != NULL);
+  
     bullet->x = (float) state->x;
     bullet->y = (float) state->y;
     bullet->z = (float) state->z;
     bullet->rx = state->rx;
     bullet->ry = state->ry;
     bullet->visible = true;
+  
+    // Postcondition
+    assert(floatEquals(bullet->x, (float) state->x));
+    assert(floatEquals(bullet->y, (float) state->y));
+    assert(floatEquals(bullet->z, (float) state->z));
+    assert(floatEquals(bullet->rx, state->rx));
+    assert(floatEquals(bullet->ry, state->ry));
+    assert(bullet->visible);
   
   // printf("Player position: x (%.2f) y (%.2f) z (%.2f)\n", state->x, state->y, state->z);
   // printf("Bullet init position x (%.2f) y (%.2f) z (%.2f)\n", bullet->x, bullet->y, bullet->z);
@@ -2198,11 +2219,23 @@ void init_bullet_position(State *state, Bullet *bullet) {
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre state is not null and bullet is not null
+ * @post Bullets flight vector the same as the players sight vector
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
+    // Precondition
     assert(state != NULL);
     assert(bullet != NULL);
-    get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+    
+    get_sight_vector(bullet->rx, bullet->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+    
+    // Postcondition
+    float x, y, z;
+    get_sight_vector(state->rx, state->ry, &x, &y, &z);
+    assert(floatEquals(bullet->dirX, x));
+    assert(floatEquals(bullet->dirY, y));
+    assert(floatEquals(bullet->dirZ, z));
 }
 
 /**
@@ -2210,18 +2243,26 @@ void set_bullet_flight_vector(State *state, Bullet *bullet) {
  * Increment the bullet's coordinates by it's direction vector.
  *
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre bullet is not null
+ * @post bullet x, y, z are incremented by dirX, dirY, dirZ respectively
  */
 void increment_bullet_position(Bullet *bullet) {
+    // Pre condition
     assert(bullet != NULL);
-  
-//    printf("Bullet Position: x (%.2f) y (.2f) z (%.2f)", bullet->x, bullet->y, bullet->z);
-//    printf("Increment: x (%.2f) y (%.2f) z (%.2f)", bullet->dirX, bullet->dirY, bullet->dirZ);
+    // Save values so we can assert the post condition
+    float x = bullet->x;
+    float y = bullet->y;
+    float z = bullet->z;
     
     bullet->x += bullet->dirX;
     bullet->y += bullet->dirY;
     bullet->z += bullet->dirZ;
-  
-//    printf("Bullet Position: x (%.2f) y (.2f) z (%.2f)", bullet->x, bullet->y, bullet->z);
+    
+    // Post condition
+    assert(floatEquals(bullet->x - x, bullet->dirX));
+    assert(floatEquals(bullet->y - y, bullet->dirY));
+    assert(floatEquals(bullet->z - z, bullet->dirZ));
 }
 
 /**
@@ -2231,11 +2272,25 @@ void increment_bullet_position(Bullet *bullet) {
  * @param attrib The program's openGL attributes
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre attrib, state and bullet are not null
+ * @post bullet is rendered on screen, state x, y, z, rx, ry is not changed and bulle x, y, z  is not changed
  */
 void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    // pre condition
     assert(attrib != NULL);
     assert(state != NULL);
     assert(bullet != NULL);
+    // Save values to assert post condition
+    float sx = state->x;
+    float sy = state->y;
+    float sz = state->z;
+    float srx = state->rx;
+    float sry = state->ry;
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    
     float matrix[16];
     set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
     glUseProgram(attrib->program);
@@ -2247,8 +2302,21 @@ void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
     GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
     draw_cube(attrib, buffer);
     del_buffer(buffer);
+    
+    // post condition
+    assert(floatEquals(sx, state->x));
+    assert(floatEquals(sy, state->y));
+    assert(floatEquals(sz, state->z));
+    assert(floatEquals(srx, state->rx));
+    assert(floatEquals(sry, state->ry));
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
 }
 
+/**
+ * Req 7.0 & 7.1
+ */
 void explode_blocks(int x, int y, int z, int w)
 {
   Block block = {x, y, z, w};
@@ -2260,20 +2328,38 @@ void explode_blocks(int x, int y, int z, int w)
  * Req 7.0
  * Test to see if a bullet has hit an object.
  *
+ * @pre bullet is not null
+ * @post bullet x, y, z and rx have not been changed
  */
 bool bullet_hit(Bullet *bullet)
 {
+    // pre condition
+    assert(bullet != NULL);
+    // save values to assert post condition
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    float brx = bullet->rx;
+    float bry = bullet->ry;
+    
     int hx, hy, hz;
     int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
     if (hy > 0 && hy < 256 && is_destructable(hw))
     {
-      explode_blocks(hx, hy, hz, hw);
-      return true;
+        explode_blocks(hx, hy, hz, hw);
+        return true;
     }
     else
     {
         return false;
     }
+    
+    // post condition
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
+    assert(floatEquals(brx, bullet->rx));
+    assert(floatEquals(bry, bullet->ry));
 }
 
 int main(int argc, char **argv) {
