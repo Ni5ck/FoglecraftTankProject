@@ -35,6 +35,8 @@
 #define MODE_OFFLINE 0
 #define MODE_ONLINE 1
 
+#define MAX_HEALTH 100
+
 typedef struct {
     Map map;
     SignList signs;
@@ -104,6 +106,9 @@ typedef struct {
     State state2;
     GLuint buffer;
     Bullet bullet;
+    float health;
+    int points;
+    int dead;
 } Player;
 
 typedef struct {
@@ -115,6 +120,7 @@ typedef struct {
     int delete_radius;
     int sign_radius;
     Player players[MAX_PLAYERS];
+    int respawn_locations[MAX_PLAYERS * 3];
     int player_count;
     int typing;
     char typing_buffer[MAX_TEXT_LENGTH];
@@ -138,6 +144,7 @@ typedef struct {
     Block block1;
     Block copy0;
     Block copy1;
+    int round_in_progress;
 } Model;
 
 static Model model;
@@ -2119,6 +2126,37 @@ void reset_model() {
     g->message_index = 0;
 }
 
+// Req. 4.0 - A health meter shall be implemented for the tank
+void take_damage (Player player, float damage)
+{
+  player.health -= damage;
+  if (player.health <= 0)
+  {
+    player.health = 0;
+    player.dead = 1;
+  }
+}
+
+int isDead (Player player)
+{
+  return player.health == 0;
+}
+
+void respawn_all ()
+{
+  for (int i = 0; i < g->player_count; i++)
+  {
+    int nx = g->respawn_locations[i*3];
+    int ny = g->respawn_locations[(i*3)+1];
+    int nz = g->respawn_locations[(i*3)+2];
+    g->players[i].state.x = nx;
+    g->players[i].state.y = ny;
+    g->players[i].state.z = nz;
+    g->players[i].health = MAX_HEALTH;
+    g->players[i].dead = 0;
+  }
+}
+  
 /**
  * Initiate bullet's starting position by setting it to the player's position
  *
@@ -2143,7 +2181,7 @@ void init_bullet_position(State *state, Bullet *bullet) {
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
     assert(state != NULL);
-    assert(buller != NULL);
+    assert(bullet != NULL);
     get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
 }
 
@@ -2353,6 +2391,9 @@ int main(int argc, char **argv) {
         me->name[0] = '\0';
         me->buffer = 0;
         g->player_count = 1;
+        me->health = MAX_HEALTH;
+        me->points = 0;
+        g->round_in_progress = 0;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
@@ -2374,12 +2415,20 @@ int main(int argc, char **argv) {
             double now = glfwGetTime();
             double dt = MIN(now - previous, 0.2);
             previous = now;
+            
+            // Req. 4.1 - When a player’s tank’s health reaches 0, the player shall die
 
+            // UPDATE PLAYER LIFE //
+            me->dead = isDead(*me);
+            
             // HANDLE MOUSE INPUT //
-            handle_mouse_input();
+            if (me->dead == 0)
+            {
+              handle_mouse_input();
 
             // HANDLE MOVEMENT //
-            handle_movement(dt);
+              handle_movement(dt);
+            }
 
             // HANDLE DATA FROM SERVER //
             char *buffer = client_recv();
@@ -2493,6 +2542,82 @@ int main(int argc, char **argv) {
                         other->name);
                 }
             }
+            
+            if (g->player_count >= 2)
+            {
+              g->round_in_progress = 1;
+            }
+            if (g->round_in_progress == 0)
+            {
+              char waiting_text[64] = "Waiting for more players to begin round.";
+              render_text(&text_attrib, ALIGN_CENTER, g->width * 1/2, g->height * 14/24, ts, waiting_text);
+            }
+            // Display health text
+            char hp_display[64];
+            strcpy(hp_display, "HP: ");
+            char healthText[8];
+            snprintf(healthText, sizeof healthText, "%.2f", g->players->health);
+            strcat(hp_display, healthText);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 5/6, g->height * 1/12, ts, hp_display);
+            // Display death message and determine how many players are left alive
+            char death_message[64];
+            strcpy(death_message, "You Died. Waiting for this round to end.");
+            if (me->dead == 1)
+            {
+              render_text(&text_attrib, ALIGN_CENTER, g->width * 1/2, g->height * 13/24, ts, death_message);
+            }
+            int players_alive = g->player_count;
+            Player *last_alive;
+            for (int i = 0; i < g->player_count; i++)
+            {
+              if (g->players[i].dead)
+              {
+                players_alive--;
+              }
+              else
+              {
+                last_alive = &g->players[i];
+              }
+            }
+            
+            // Handle point distribution and display points
+            if (g->round_in_progress == 1)
+            {
+              if (players_alive == 1)
+              {
+                last_alive->points++;
+                respawn_all();
+              }
+              else if (players_alive == 0)
+              {
+                respawn_all();
+              }
+            }
+            char self_points[256];
+            strcpy(self_points, "You: ");
+            char points_str[2];
+            sprintf(points_str, "%i", g->players->points);
+            strcat(self_points, points_str);
+
+            // Check who the top player is and display their points
+            char top_player[64];
+            strcpy(top_player, "(TOP) ");
+            int top_index = 0;
+            int top_points = 0;
+            for (int i = 0; i < g->player_count; i++)
+            {
+              if (g->players[i].points > top_points)
+              {
+                top_index = i;
+                top_points = g->players[i].points;
+              }
+            }
+            strcat(top_player, g->players[top_index].name);
+            strcat(top_player, ": ");
+            sprintf(points_str, "%i", g->players[top_index].points);
+            strcat(top_player, points_str);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 10/12, g->height * 22/24, ts, self_points);
+            render_text(&text_attrib, ALIGN_LEFT, g->width * 10/12, g->height * 21/24, ts, top_player);
 
             // RENDER PICTURE IN PICTURE //
             if (g->observe2) {
