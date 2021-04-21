@@ -35,7 +35,7 @@
 #define MODE_OFFLINE 0
 #define MODE_ONLINE 1
 
-#define MAX_HEALTH 10
+#define MAX_HEALTH 100
 
 typedef struct {
     Map map;
@@ -2132,7 +2132,6 @@ void take_damage (Player player, float damage)
   player.health -= damage;
   if (player.health <= 0)
   {
-    // Death message
     player.health = 0;
     player.dead = 1;
   }
@@ -2140,10 +2139,7 @@ void take_damage (Player player, float damage)
 
 int isDead (Player player)
 {
-  if (player.health > 0)
-    return 0;
-  else
-    return 1;
+  return player.health == 0;
 }
 
 void respawn_all ()
@@ -2185,7 +2181,7 @@ void init_bullet_position(State *state, Bullet *bullet) {
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
     assert(state != NULL);
-    assert(buller != NULL);
+    assert(bullet != NULL);
     get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
 }
 
@@ -2559,7 +2555,7 @@ int main(int argc, char **argv) {
             // Display health text
             char hp_display[64];
             strcpy(hp_display, "HP: ");
-            char healthText[5];
+            char healthText[8];
             snprintf(healthText, sizeof healthText, "%.2f", g->players->health);
             strcat(hp_display, healthText);
             render_text(&text_attrib, ALIGN_LEFT, g->width * 5/6, g->height * 1/12, ts, hp_display);
@@ -2574,7 +2570,7 @@ int main(int argc, char **argv) {
             Player *last_alive;
             for (int i = 0; i < g->player_count; i++)
             {
-              if (isDead(g->players[i]))
+              if (g->players[i].dead)
               {
                 players_alive--;
               }
@@ -2598,8 +2594,7 @@ int main(int argc, char **argv) {
               }
             }
             char self_points[256];
-            strcpy(self_points, "You");
-            strcat(self_points, ": ");
+            strcpy(self_points, "You: ");
             char points_str[2];
             sprintf(points_str, "%i", g->players->points);
             strcat(self_points, points_str);
