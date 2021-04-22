@@ -254,3 +254,8 @@ void client_stop() {
     // printf("Bytes Sent: %d, Bytes Received: %d\n",
     //     bytes_sent, bytes_received);
 }
+
+void client_block(float x, float y, float z)
+{
+  
+}

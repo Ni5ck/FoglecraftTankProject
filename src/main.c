@@ -35,7 +35,8 @@
 #define MODE_OFFLINE 0
 #define MODE_ONLINE 1
 
-<<<<<<< HEAD
+#define MAX_HEALTH 100
+
 /**
  * Comapare floats to ensure they are within 0.1 in order to assume they are equal for asserting post conditions.
  */
@@ -43,9 +44,6 @@ bool floatEquals(float a, float b)
 {
     return fabs(a - b) < 0.1;
 }
-=======
-#define MAX_HEALTH 100
->>>>>>> 1962463e831be84aaa1875a6e3ad16343b6de8d5
 
 typedef struct {
     Map map;
