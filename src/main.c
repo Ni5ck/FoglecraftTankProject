@@ -2127,6 +2127,13 @@ void reset_model() {
 }
 
 // Req. 4.0 - A health meter shall be implemented for the tank
+
+/**
+* Decrements a given Player's health by a set amount of damage
+*
+* @param player The affected Player
+* @param damage The amount of damage the given Player will take
+*/
 void take_damage (Player player, float damage)
 {
   player.health -= damage;
@@ -2137,11 +2144,19 @@ void take_damage (Player player, float damage)
   }
 }
 
+/**
+* Returns whether the player is at 0 hp or not
+*
+* @param player The Player in question to be dead
+*/
 int isDead (Player player)
 {
   return player.health == 0;
 }
 
+/**
+* Teleports all players to their set spawn location
+*/
 void respawn_all ()
 {
   for (int i = 0; i < g->player_count; i++)
@@ -2394,6 +2409,20 @@ int main(int argc, char **argv) {
         me->health = MAX_HEALTH;
         me->points = 0;
         g->round_in_progress = 0;
+        
+        // RESPAWN LOCATIONS //
+        g->respawn_locations[0] = ;
+        g->respawn_locations[1] = 30;
+        g->respawn_locations[2] = ;
+        g->respawn_locations[3] = ;
+        g->respawn_locations[4] = 30;
+        g->respawn_locations[5] = ;
+        g->respawn_locations[6] = ;
+        g->respawn_locations[7] = 30;
+        g->respawn_locations[8] = ;
+        g->respawn_locations[9] = ;
+        g->respawn_locations[10] = 30;
+        g->respawn_locations[11] = ;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
