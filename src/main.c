@@ -37,6 +37,14 @@
 
 #define MAX_HEALTH 100
 
+/**
+ * Comapare floats to ensure they are within 0.1 in order to assume they are equal for asserting post conditions.
+ */
+bool floatEquals(float a, float b)
+{
+    return fabs(a - b) < 0.1;
+}
+
 typedef struct {
     Map map;
     SignList signs;
@@ -94,6 +102,8 @@ typedef struct {
     float dirX; /**< x value of direction vector */
     float dirY; /**< y value of direction vector*/
     float dirZ; /**< z value of direction vector */
+    float rx;
+    float ry;
     bool visible; /**< flag indicating the bullet has been shot */
     bool shoot;
 } Bullet;
@@ -615,7 +625,7 @@ int hit_test(
             continue;
         }
         int hx, hy, hz;
-        int hw = _hit_test(&chunk->map, 8, previous,
+        int hw = _hit_test(&chunk->map, 1, previous,
             x, y, z, vx, vy, vz, &hx, &hy, &hz);
         if (hw > 0) {
             float d = sqrtf(
@@ -1560,6 +1570,55 @@ void sphere(Block *center, int radius, int fill, int fx, int fy, int fz) {
     }
 }
 
+void empty_sphere(Block *center, int radius, int fill, int fx, int fy, int fz) {
+    static float offsets[8][3] = {
+        {-0.5, -0.5, -0.5},
+        {-0.5, -0.5, 0.5},
+        {-0.5, 0.5, -0.5},
+        {-0.5, 0.5, 0.5},
+        {0.5, -0.5, -0.5},
+        {0.5, -0.5, 0.5},
+        {0.5, 0.5, -0.5},
+        {0.5, 0.5, 0.5}
+    };
+    int cx = center->x;
+    int cy = center->y;
+    int cz = center->z;
+    int w = center->w;
+    for (int x = cx - radius; x <= cx + radius; x++) {
+        if (fx && x != cx) {
+            continue;
+        }
+        for (int y = cy - radius; y <= cy + radius; y++) {
+            if (fy && y != cy) {
+                continue;
+            }
+            for (int z = cz - radius; z <= cz + radius; z++) {
+                if (fz && z != cz) {
+                    continue;
+                }
+                int inside = 0;
+                int outside = fill;
+                for (int i = 0; i < 8; i++) {
+                    float dx = x + offsets[i][0] - cx;
+                    float dy = y + offsets[i][1] - cy;
+                    float dz = z + offsets[i][2] - cz;
+                    float d = sqrtf(dx * dx + dy * dy + dz * dz);
+                    if (d < radius) {
+                        inside = 1;
+                    }
+                    else {
+                        outside = 1;
+                    }
+                }
+                if (inside && outside) {
+                    builder_block(x, y, z, 0);
+                }
+            }
+        }
+    }
+}
+
 void cylinder(Block *b1, Block *b2, int radius, int fill) {
     if (b1->w != b2->w) {
         return;
@@ -2129,6 +2188,7 @@ void reset_model() {
 // Req. 4.0 - A health meter shall be implemented for the tank
 
 /**
+* Req 4.0
 * Decrements a given Player's health by a set amount of damage
 *
 * @param player The affected Player
@@ -2145,9 +2205,11 @@ void take_damage (Player player, float damage)
 }
 
 /**
-* Returns whether the player is at 0 hp or not
+* Req 4.1.1, 4.1.2, & 4.1.3
+* Decrements a given Player's health by a set amount of damage
 *
-* @param player The Player in question to be dead
+* @param player The affected Player
+* @param damage The amount of damage the given Player will take
 */
 int isDead (Player player)
 {
@@ -2155,6 +2217,7 @@ int isDead (Player player)
 }
 
 /**
+* Req 5.0 & 5.1
 * Teleports all players to their set spawn location
 */
 void respawn_all ()
@@ -2173,56 +2236,118 @@ void respawn_all ()
 }
   
 /**
+ * Req.  3.1
  * Initiate bullet's starting position by setting it to the player's position
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre State and bullet are not null
+ * @post Bullet x, y, z, rx, ry is set to state's x, y, z, rx, ry, bullet is set to true
  */
 void init_bullet_position(State *state, Bullet *bullet) {
+    // Preconditon
     assert(bullet != NULL);
     assert(state != NULL);
+  
     bullet->x = (float) state->x;
     bullet->y = (float) state->y;
     bullet->z = (float) state->z;
+    bullet->rx = state->rx;
+    bullet->ry = state->ry;
     bullet->visible = true;
+  
+    // Postcondition
+    assert(floatEquals(bullet->x, (float) state->x));
+    assert(floatEquals(bullet->y, (float) state->y));
+    assert(floatEquals(bullet->z, (float) state->z));
+    assert(floatEquals(bullet->rx, state->rx));
+    assert(floatEquals(bullet->ry, state->ry));
+    assert(bullet->visible);
+  
+  // printf("Player position: x (%.2f) y (%.2f) z (%.2f)\n", state->x, state->y, state->z);
+  // printf("Bullet init position x (%.2f) y (%.2f) z (%.2f)\n", bullet->x, bullet->y, bullet->z);
 }
 
 /**
+ * Req. 3.1
  * Set the direction vector of the bullet based on the sight vector of the player
  * when the bullet is shot.
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre state is not null and bullet is not null
+ * @post Bullets flight vector the same as the players sight vector
  */
 void set_bullet_flight_vector(State *state, Bullet *bullet) {
+    // Precondition
     assert(state != NULL);
     assert(bullet != NULL);
-    get_sight_vector(state->rx, state->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+    get_sight_vector(bullet->rx, bullet->ry, &bullet->dirX, &bullet->dirY, &bullet->dirZ);
+    
+    // Postcondition
+    float x, y, z;
+    get_sight_vector(state->rx, state->ry, &x, &y, &z);
+    assert(floatEquals(bullet->dirX, x));
+    assert(floatEquals(bullet->dirY, y));
+    assert(floatEquals(bullet->dirZ, z));
+
 }
 
 /**
+ * Req 3.1
  * Increment the bullet's coordinates by it's direction vector.
  *
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre bullet is not null
+ * @post bullet x, y, z are incremented by dirX, dirY, dirZ respectively
  */
 void increment_bullet_position(Bullet *bullet) {
+    // Pre condition
     assert(bullet != NULL);
+    // Save values so we can assert the post condition
+    float x = bullet->x;
+    float y = bullet->y;
+    float z = bullet->z;
+    
     bullet->x += bullet->dirX;
     bullet->y += bullet->dirY;
     bullet->z += bullet->dirZ;
+    
+    // Post condition
+    assert(floatEquals(bullet->x - x, bullet->dirX));
+    assert(floatEquals(bullet->y - y, bullet->dirY));
+    assert(floatEquals(bullet->z - z, bullet->dirZ));
 }
 
 /**
+ * Req 3.0
  * Render bullet in window.
  *
  * @param attrib The program's openGL attributes
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
+ *
+ * @pre attrib, state and bullet are not null
+ * @post bullet is rendered on screen, state x, y, z, rx, ry is not changed and bulle x, y, z  is not changed
  */
 void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    // pre condition
     assert(attrib != NULL);
     assert(state != NULL);
     assert(bullet != NULL);
+    // Save values to assert post condition
+    float sx = state->x;
+    float sy = state->y;
+    float sz = state->z;
+    float srx = state->rx;
+    float sry = state->ry;
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    
     float matrix[16];
     set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
     glUseProgram(attrib->program);
@@ -2234,6 +2359,64 @@ void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
     GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
     draw_cube(attrib, buffer);
     del_buffer(buffer);
+    
+    // post condition
+    assert(floatEquals(sx, state->x));
+    assert(floatEquals(sy, state->y));
+    assert(floatEquals(sz, state->z));
+    assert(floatEquals(srx, state->rx));
+    assert(floatEquals(sry, state->ry));
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
+}
+
+/**
+ * Req 7.0 & 7.1
+ */
+void explode_blocks(int x, int y, int z, int w)
+{
+  Block block = {x, y, z, w};
+  int random = rand() % 4 + 1; // Req 7.1
+  empty_sphere(&block, random, 5, 0, 0, 0);
+}
+
+/**
+ * Req 7.0
+ * Test to see if a bullet has hit an object.
+ *
+ * @pre bullet is not null
+ * @post bullet x, y, z and rx have not been changed
+ */
+bool bullet_hit(Bullet *bullet)
+{
+    // pre condition
+    assert(bullet != NULL);
+    // save values to assert post condition
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    float brx = bullet->rx;
+    float bry = bullet->ry;
+    
+    int hx, hy, hz;
+    int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
+    if (hy > 0 && hy < 256 && is_destructable(hw))
+    {
+        explode_blocks(hx, hy, hz, hw);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+    
+    // post condition
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
+    assert(floatEquals(brx, bullet->rx));
+    assert(floatEquals(bry, bullet->ry));
 }
 
 int main(int argc, char **argv) {
@@ -2410,19 +2593,19 @@ int main(int argc, char **argv) {
         me->points = 0;
         g->round_in_progress = 0;
         
-        // RESPAWN LOCATIONS //
-        g->respawn_locations[0] = ;
+         // RESPAWN LOCATIONS //
+        g->respawn_locations[0] = 20;
         g->respawn_locations[1] = 30;
-        g->respawn_locations[2] = ;
-        g->respawn_locations[3] = ;
+        g->respawn_locations[2] = 20;
+        g->respawn_locations[3] = -20;
         g->respawn_locations[4] = 30;
-        g->respawn_locations[5] = ;
-        g->respawn_locations[6] = ;
+        g->respawn_locations[5] = -20;
+        g->respawn_locations[6] = -20;
         g->respawn_locations[7] = 30;
-        g->respawn_locations[8] = ;
-        g->respawn_locations[9] = ;
+        g->respawn_locations[8] = 20;
+        g->respawn_locations[9] = 20;
         g->respawn_locations[10] = 30;
-        g->respawn_locations[11] = ;
+        g->respawn_locations[11] = -20;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);
@@ -2504,16 +2687,18 @@ int main(int argc, char **argv) {
           
             if (player->bullet.shoot)
             {
-              init_bullet_position(&player->state, &player->bullet);
-              set_bullet_flight_vector(&player->state, &player->bullet);
+                init_bullet_position(&player->state, &player->bullet);
+                set_bullet_flight_vector(&player->state, &player->bullet);
               
-              player->bullet.shoot = false;
+                player->bullet.shoot = false;
             }
           
             if (player->bullet.visible == true)
             {
-              increment_bullet_position(&player->bullet);
-              render_bullet(&block_attrib, &player->state, &player->bullet);
+                increment_bullet_position(&player->bullet);
+                render_bullet(&block_attrib, &player->state, &player->bullet);
+                if (bullet_hit(&player->bullet))
+                    player->bullet.visible = false;
             }
 
             // RENDER HUD //
