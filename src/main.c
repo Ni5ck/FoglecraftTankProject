@@ -1844,8 +1844,9 @@ void on_left_click() {
 }
 
 void on_right_click() {
-  Player *player = &g->players;
-  player->bullet.shoot = true;
+    Player *player = &g->players;
+    if (!player->bullet.visible)
+        player->bullet.shoot = true;
 }
 
 void on_middle_click() {
@@ -2391,16 +2392,18 @@ bool bullet_hit(Bullet *bullet)
     float brx = bullet->rx;
     float bry = bullet->ry;
     
+    bool ret;
+    
     int hx, hy, hz;
     int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
     if (hy > 0 && hy < 256 && is_destructable(hw))
     {
         explode_blocks(hx, hy, hz, hw);
-        return true;
+        ret = true;
     }
     else
     {
-        return false;
+        ret = false;
     }
     
     // post condition
@@ -2409,6 +2412,37 @@ bool bullet_hit(Bullet *bullet)
     assert(floatEquals(bz, bullet->z));
     assert(floatEquals(brx, bullet->rx));
     assert(floatEquals(bry, bullet->ry));
+    
+    return ret;
+}
+
+bool bullet_goes_out_of_scope(Bullet *bullet, State *state)
+{
+    // pre condition
+    assert(bullet != NULL);
+    assert(state != NULL);
+    
+    // save values to assert post condition
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    float sx = state->x;
+    float sy = state->y;
+    float sz = state->z;
+    
+    bool ret = false;
+    if ((fabsf(bullet->x) - fabsf(state->x) > 255) || (fabsf(bullet->y) - fabsf(state->y) > 255) || (fabsf(bullet->z) - fabsf(state->z) > 255))
+        ret = true;
+    
+    // post condition
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
+    assert(floatEquals(sx, state->x));
+    assert(floatEquals(sy, state->y));
+    assert(floatEquals(sz, state->z));
+    
+    return ret;
 }
 
 int main(int argc, char **argv) {
@@ -2675,7 +2709,7 @@ int main(int argc, char **argv) {
             {
                 increment_bullet_position(&player->bullet);
                 render_bullet(&block_attrib, &player->state, &player->bullet);
-                if (bullet_hit(&player->bullet))
+                if (bullet_hit(&player->bullet) || bullet_goes_out_of_scope(&player->bullet, &player->state))
                     player->bullet.visible = false;
                 
                 client_bullet(player->bullet.x, player->bullet.y, player->bullet.z);
