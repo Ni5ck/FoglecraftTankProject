@@ -255,7 +255,12 @@ void client_stop() {
     //     bytes_sent, bytes_received);
 }
 
-void client_block(float x, float y, float z)
+void client_bullet(float x, float y, float z)
 {
-  
+  if (!client_enabled) {
+      return;
+  }
+  char buffer[1024];
+  snprintf(buffer, 1024, "X,%f,%f,%f\n", x, y, z);
+  client_send(buffer);
 }

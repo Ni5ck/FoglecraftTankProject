@@ -1434,6 +1434,55 @@ void render_text(
     del_buffer(buffer);
 }
 
+/**
+ * Req 3.0
+ * Render bullet in window.
+ *
+ * @param attrib The program's openGL attributes
+ * @param state Structure containing a player's position
+ * @param bullet Structure representing the player's bullet
+ *
+ * @pre attrib, state and bullet are not null
+ * @post bullet is rendered on screen, state x, y, z, rx, ry is not changed and bulle x, y, z  is not changed
+ */
+void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
+    // pre condition
+    assert(attrib != NULL);
+    assert(state != NULL);
+    assert(bullet != NULL);
+    // Save values to assert post condition
+    float sx = state->x;
+    float sy = state->y;
+    float sz = state->z;
+    float srx = state->rx;
+    float sry = state->ry;
+    float bx = bullet->x;
+    float by = bullet->y;
+    float bz = bullet->z;
+    
+    float matrix[16];
+    set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
+    glUseProgram(attrib->program);
+    glEnable(GL_COLOR_LOGIC_OP);
+    glUniformMatrix4fv(attrib->matrix, 1, GL_FALSE, matrix);
+    glUniform3f(attrib->camera, state->x, state->y, state->z);
+    glUniform1i(attrib->sampler, 0);
+    int bulletItem = items[0];
+    GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
+    draw_cube(attrib, buffer);
+    del_buffer(buffer);
+    
+    // post condition
+    assert(floatEquals(sx, state->x));
+    assert(floatEquals(sy, state->y));
+    assert(floatEquals(sz, state->z));
+    assert(floatEquals(srx, state->rx));
+    assert(floatEquals(sry, state->ry));
+    assert(floatEquals(bx, bullet->x));
+    assert(floatEquals(by, bullet->y));
+    assert(floatEquals(bz, bullet->z));
+}
+
 void add_message(const char *text) {
     printf("%s\n", text);
     snprintf(
@@ -2143,6 +2192,17 @@ void parse_buffer(char *buffer) {
                 chunk->dirty = 1;
             }
         }
+        float xx, xy, xz;
+        if (sscanf(line, "X,%d,%f,%f,%f", &pid, &xx, &xy, &xz) == 4) {
+            Player *player = find_player(pid);
+            player->bullet.visible = true;
+            player->bullet.x = xx;
+            player->bullet.y = xy;
+            player->bullet.z = xz;
+            printf("%f x %f y %f z", xx, xy, xy);
+            
+            // render_bullet(&block_attrib, &me->state, &bullet);
+        }
         if (line[0] == 'T' && line[1] == ',') {
             char *text = line + 2;
             add_message(text);
@@ -2301,55 +2361,6 @@ void increment_bullet_position(Bullet *bullet) {
     assert(floatEquals(bullet->x - x, bullet->dirX));
     assert(floatEquals(bullet->y - y, bullet->dirY));
     assert(floatEquals(bullet->z - z, bullet->dirZ));
-}
-
-/**
- * Req 3.0
- * Render bullet in window.
- *
- * @param attrib The program's openGL attributes
- * @param state Structure containing a player's position
- * @param bullet Structure representing the player's bullet
- *
- * @pre attrib, state and bullet are not null
- * @post bullet is rendered on screen, state x, y, z, rx, ry is not changed and bulle x, y, z  is not changed
- */
-void render_bullet(Attrib *attrib, State *state, Bullet *bullet) {
-    // pre condition
-    assert(attrib != NULL);
-    assert(state != NULL);
-    assert(bullet != NULL);
-    // Save values to assert post condition
-    float sx = state->x;
-    float sy = state->y;
-    float sz = state->z;
-    float srx = state->rx;
-    float sry = state->ry;
-    float bx = bullet->x;
-    float by = bullet->y;
-    float bz = bullet->z;
-    
-    float matrix[16];
-    set_matrix_3d(matrix, g->width, g->height, state->x, state->y, state->z, state->rx, state->ry, g->fov, g->ortho, g->render_radius);
-    glUseProgram(attrib->program);
-    glEnable(GL_COLOR_LOGIC_OP);
-    glUniformMatrix4fv(attrib->matrix, 1, GL_FALSE, matrix);
-    glUniform3f(attrib->camera, state->x, state->y, state->z);
-    glUniform1i(attrib->sampler, 0);
-    int bulletItem = items[0];
-    GLuint buffer = gen_cube_buffer(bullet->x, bullet->y, bullet->z, 0.05, bulletItem);
-    draw_cube(attrib, buffer);
-    del_buffer(buffer);
-    
-    // post condition
-    assert(floatEquals(sx, state->x));
-    assert(floatEquals(sy, state->y));
-    assert(floatEquals(sz, state->z));
-    assert(floatEquals(srx, state->rx));
-    assert(floatEquals(sry, state->ry));
-    assert(floatEquals(bx, bullet->x));
-    assert(floatEquals(by, bullet->y));
-    assert(floatEquals(bz, bullet->z));
 }
 
 /**
@@ -2666,6 +2677,17 @@ int main(int argc, char **argv) {
                 render_bullet(&block_attrib, &player->state, &player->bullet);
                 if (bullet_hit(&player->bullet))
                     player->bullet.visible = false;
+                
+                client_bullet(player->bullet.x, player->bullet.y, player->bullet.z);
+            }
+            
+            for (int i = 1; i < g->player_count; i++)
+            {
+                Player *other = &g->players[i];
+                if (other->bullet.visible)
+                {
+                    render_bullet(&block_attrib, &player->state, &other->bullet);
+                }
             }
 
             // RENDER HUD //

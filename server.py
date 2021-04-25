@@ -44,6 +44,7 @@ SIGN = 'S'
 TALK = 'T'
 VERSION = 'V'
 YOU = 'U'
+BULLET = 'X'
 
 try:
     from config import *
@@ -176,6 +177,7 @@ class Model(object):
             TALK: self.on_talk,
             SIGN: self.on_sign,
             VERSION: self.on_version,
+            BULLET: self.on_bullet
         }
         self.patterns = [
             (re.compile(r'^/spawn$'), self.on_spawn),
@@ -423,6 +425,10 @@ class Model(object):
                 'x = :x and y = :y and z = :z;'
             )
             self.execute(query, dict(x=x, y=y, z=z))
+    def on_bullet(self, client, x, y, z):
+        client.bullet = (x, y, z)
+        print('On bullet')
+        self.send_bullet(client)
     def on_sign(self, client, x, y, z, face, *args):
         if client.user_id is None:
             client.send(TALK, 'Only logged in users are allowed to build.')
@@ -548,6 +554,11 @@ class Model(object):
             if other == client:
                 continue
             other.send(POSITION, client.client_id, *client.position)
+    def send_bullet(self, client):
+        for other in self.clients:
+            if other == client:
+                continue
+            other.send(BULLET, client.client_id, *client.bullet)
     def send_nicks(self, client):
         for other in self.clients:
             if other == client:
