@@ -1435,8 +1435,9 @@ void render_text(
 }
 
 /**
- * Req 3.0
- * Render bullet in window.
+ * This funciton renders a bullet on the screen of the current player based on the players state and
+ * bullet position. This fulfills project Requirement 3.0 "A bullet graphic shall be implemented to show
+ * the bullet's location. 
  *
  * @param attrib The program's openGL attributes
  * @param state Structure containing a player's position
@@ -1843,6 +1844,11 @@ void on_left_click() {
     }
 }
 
+/**
+ * This method sets the current players bullet's shoot flag to true. The bullet's rendering and movement will be
+ * handled in the main loop. This fulfills Requirment 2.2.2 "Tank will shoot (spawn a bullet) when the right mouse
+ * is pressed (double finger click for mouspad)
+ */
 void on_right_click() {
     Player *player = &g->players;
     if (!player->bullet.visible)
@@ -2087,6 +2093,7 @@ void handle_mouse_input() {
     }
 }
 
+// This method has been edited to fulfill Requirement 2.0 "The controls shall be overriden to allow for special tank controls
 void handle_movement(double dt) {
     static float dy = 0;
     State *s = &g->players->state;
@@ -2096,10 +2103,10 @@ void handle_movement(double dt) {
         float m = dt * 1.0;
         g->ortho = glfwGetKey(g->window, CRAFT_KEY_ORTHO) ? 64 : 0;
         g->fov = glfwGetKey(g->window, CRAFT_KEY_ZOOM) ? 15 : 65;
-        if (glfwGetKey(g->window, CRAFT_KEY_FORWARD)) sz--;
-        if (glfwGetKey(g->window, CRAFT_KEY_BACKWARD)) sz++;
-        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) s->rx -= m;
-        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) s->rx += m;
+        if (glfwGetKey(g->window, CRAFT_KEY_FORWARD)) sz--; // Requirmemnt 2.1.1 "Tank will move forward when 'W' is pressed
+        if (glfwGetKey(g->window, CRAFT_KEY_BACKWARD)) sz++; // Requirement 2.1.4 "Tank will move backward when 'S' is pressed
+        if (glfwGetKey(g->window, CRAFT_KEY_LEFT)) s->rx -= m; // Requirement 2.1.2 "Tank will rotate left when 'A' is pressed
+        if (glfwGetKey(g->window, CRAFT_KEY_RIGHT)) s->rx += m; // Requirement 2.1.3 "Tank will rotate right when 'D' is pressed
         if (glfwGetKey(g->window, GLFW_KEY_LEFT)) s->rx -= m;
         if (glfwGetKey(g->window, GLFW_KEY_RIGHT)) s->rx += m;
         if (glfwGetKey(g->window, GLFW_KEY_UP)) s->ry += m;
@@ -2194,15 +2201,13 @@ void parse_buffer(char *buffer) {
             }
         }
         float xx, xy, xz;
+        // Read in other players bullet positions so they can be rendered in main loop to fulfill Req. 3.0
         if (sscanf(line, "X,%d,%f,%f,%f", &pid, &xx, &xy, &xz) == 4) {
             Player *player = find_player(pid);
             player->bullet.visible = true;
             player->bullet.x = xx;
             player->bullet.y = xy;
             player->bullet.z = xz;
-            printf("%f x %f y %f z", xx, xy, xy);
-            
-            // render_bullet(&block_attrib, &me->state, &bullet);
         }
         if (line[0] == 'T' && line[1] == ',') {
             char *text = line + 2;
@@ -2278,8 +2283,9 @@ void respawn_all ()
 }
   
 /**
- * Req.  3.1
- * Initiate bullet's starting position by setting it to the player's position
+ * This function initiates the bullets starting position by setting it to the players current position. This
+ * is a starting point for the bulelt in order to fulfill Requirement 3.1 "the bullet shall move in a straight
+ * line in the direction the turent is facing"
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
@@ -2306,15 +2312,13 @@ void init_bullet_position(State *state, Bullet *bullet) {
     assert(floatEquals(bullet->rx, state->rx));
     assert(floatEquals(bullet->ry, state->ry));
     assert(bullet->visible);
-  
-  // printf("Player position: x (%.2f) y (%.2f) z (%.2f)\n", state->x, state->y, state->z);
-  // printf("Bullet init position x (%.2f) y (%.2f) z (%.2f)\n", bullet->x, bullet->y, bullet->z);
 }
 
 /**
- * Req. 3.1
- * Set the direction vector of the bullet based on the sight vector of the player
- * when the bullet is shot.
+ * This function sets the direction vector of the bullet based on the sight vector of the the player.
+ * This will store that vector so that the bullet can be incremented by that direction vector in order
+ * to fulfill Requirement 3.1 "The bullet shall move in a straight line in the direction the turrent is
+ * facing"
  *
  * @param state Structure containing a player's position
  * @param bullet Structure representing the player's bullet
@@ -2338,8 +2342,10 @@ void set_bullet_flight_vector(State *state, Bullet *bullet) {
 }
 
 /**
- * Req 3.1
- * Increment the bullet's coordinates by it's direction vector.
+ *  This function increments the bullets coordinates by it's direction vector. The direction vector
+ *  gives the direction the player was facing when the bullet was shot. Incrementing the bullet by
+ *  it's direction vector will ensure it is moving in a strait line which fulfills Requirement 3.1
+ *  "The bullet shall move in a straight line in the direction the turrent is facing.
  *
  * @param bullet Structure representing the player's bullet
  *
@@ -2365,18 +2371,27 @@ void increment_bullet_position(Bullet *bullet) {
 }
 
 /**
- * Req 7.0 & 7.1
+ *  This function removes a random amount of  blocks that surround a block that is indicated by the
+ *  coordinates given as parameters. This fulfills requirement 7.1 "The amount of blocks broken in
+ *  the explostion radius shall be determined by a randomly influenced equation. This method
+ *  uses the rand() function to generate a random number between 1 and 5. This number is
+ *  used to determine the radius of the shere of blocks that will be removed by this functions.
+ *
+ *  @param x x axis value of block that was hit by a bullet
+ *  @param y y axis value of block that was hit by a bullet
+ *  @param z z axis value of block that was hit by a bullet
  */
-void explode_blocks(int x, int y, int z, int w)
+void explode_blocks(int x, int y, int z)
 {
-  Block block = {x, y, z, w};
+  Block block = {x, y, z, 1};
   int random = rand() % 4 + 1; // Req 7.1
   empty_sphere(&block, random, 5, 0, 0, 0);
 }
 
 /**
- * Req 7.0
- * Test to see if a bullet has hit an object.
+ * This method tests to see if a bullet has hit an object. If the bullet has met an object this method
+ *  will explode blocks around the block that was impacted by the bullet. This fulfills project
+ *  Requirement 7.0  "Bullet shall destruct blocks on impact within an explosion radius.
  *
  * @pre bullet is not null
  * @post bullet x, y, z and rx have not been changed
@@ -2398,7 +2413,7 @@ bool bullet_hit(Bullet *bullet)
     int hw = hit_test(0, bullet->x, bullet->y, bullet->z, bullet->rx, bullet->ry, &hx, &hy, &hz);
     if (hy > 0 && hy < 256 && is_destructable(hw))
     {
-        explode_blocks(hx, hy, hz, hw);
+        explode_blocks(hx, hy, hz);
         ret = true;
     }
     else
