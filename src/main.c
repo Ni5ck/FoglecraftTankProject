@@ -2252,6 +2252,14 @@ void reset_model() {
 }
 
 // Req. 4.0 - A health meter shall be implemented for the tank
+
+/**
+* Req 4.0
+* Decrements a given Player's health by a set amount of damage
+*
+* @param player The affected Player
+* @param damage The amount of damage the given Player will take
+*/
 void take_damage (Player player, float damage)
 {
   player.health -= damage;
@@ -2262,11 +2270,22 @@ void take_damage (Player player, float damage)
   }
 }
 
+/**
+* Req 4.1.1, 4.1.2, & 4.1.3
+* Decrements a given Player's health by a set amount of damage
+*
+* @param player The affected Player
+* @param damage The amount of damage the given Player will take
+*/
 int isDead (Player player)
 {
   return player.health == 0;
 }
 
+/**
+* Req 5.0 & 5.1
+* Teleports all players to their set spawn location
+*/
 void respawn_all ()
 {
   for (int i = 0; i < g->player_count; i++)
@@ -2431,6 +2450,19 @@ bool bullet_hit(Bullet *bullet)
     return ret;
 }
 
+/**
+ * This method is used to check if the bullet has "moved out of scope" so that a new bullet can be initialized. This catches if a bullet has
+ * gone past it's theoretical limit before hitting something such as shooting past the lowest block or into the sky. This is a helper function to ensure that
+ * requirement 3.0 "A bulelt graphic shall be implemented to show the bullet's location is met" 
+ *
+ * @param bullet Structure representing the player's bullet
+ * @param state Structure containing a player's position
+ *
+ * @pre bullet and state are not null
+ * @post bullet and state's values are not affected in this function
+ *
+ * @return true if the bullet has gone out of scope, else false
+ */
 bool bullet_goes_out_of_scope(Bullet *bullet, State *state)
 {
     // pre condition
@@ -2633,6 +2665,20 @@ int main(int argc, char **argv) {
         me->health = MAX_HEALTH;
         me->points = 0;
         g->round_in_progress = 0;
+        
+         // RESPAWN LOCATIONS //
+        g->respawn_locations[0] = 20;
+        g->respawn_locations[1] = 30;
+        g->respawn_locations[2] = 20;
+        g->respawn_locations[3] = -20;
+        g->respawn_locations[4] = 30;
+        g->respawn_locations[5] = -20;
+        g->respawn_locations[6] = -20;
+        g->respawn_locations[7] = 30;
+        g->respawn_locations[8] = 20;
+        g->respawn_locations[9] = 20;
+        g->respawn_locations[10] = 30;
+        g->respawn_locations[11] = -20;
 
         // LOAD STATE FROM DATABASE //
         int loaded = db_load_state(&s->x, &s->y, &s->z, &s->rx, &s->ry);

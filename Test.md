@@ -11,3 +11,5 @@ Test Coverage:
 (Passed) bullet_hit: When a bullet hits a block it explodes a random amount of blocks around it 
 
 (Passed) explode_blocks: Blocks disappear around an assigned block.
+
+(Passed) Server functions with two players connected.
