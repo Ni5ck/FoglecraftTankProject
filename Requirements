@@ -10,7 +10,7 @@ Req. 2.1.4 - Tank will move backwards when ‘S’ is pressed
 Req. 2.1.5 - Tank will rotate with mouse movement
 Req. 2.2 - Tank shooting
     Req. 2.2.1 - Tank will shoot where the retical mouse is pointing 
-Req. 2.2.2 - Tank will shoot (spawn a bullet) when the left mouse button is pressgmiaed (single finger    click for mouse pad)
+Req. 2.2.2 - Tank will shoot (spawn a bullet) when the right mouse button is pressed (double finger click for mouse pad)
 Req. 3.0 - A bullet graphic shall be implemented to show the bullet’s location
 Req. 3.1 - The bullet shall move in a straight line in the direction the turret is facing
 Req. 4.0 - A health meter shall be implemented for the tank (3) -N

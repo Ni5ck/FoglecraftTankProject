@@ -254,3 +254,25 @@ void client_stop() {
     // printf("Bytes Sent: %d, Bytes Received: %d\n",
     //     bytes_sent, bytes_received);
 }
+
+/**
+ * This function sends the position of a players bullet to the server so that other players
+ * can see thebullet flying through the scene. This fulfills both requirements 3.0 "A bullet
+ * graphic shall be implemented to show the bullet's location and Req 13.0 "There shall be
+ * a decicated server for players to connect to in order to play multiplayer. This function
+ * sends the a capital X to indicate that this is a client bullet message followed by the x, y
+ * and z coordinates of the bullet.
+ *
+ * @param x x axis value of bullet
+ * @param y y axis value of bullet
+ * @param z z axis value of bullet
+ */
+void client_bullet(float x, float y, float z)
+{
+  if (!client_enabled) {
+      return;
+  }
+  char buffer[1024];
+  snprintf(buffer, 1024, "X,%f,%f,%f\n", x, y, z);
+  client_send(buffer);
+}

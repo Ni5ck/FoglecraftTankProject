@@ -44,6 +44,7 @@ SIGN = 'S'
 TALK = 'T'
 VERSION = 'V'
 YOU = 'U'
+BULLET = 'X'
 
 try:
     from config import *
@@ -176,6 +177,7 @@ class Model(object):
             TALK: self.on_talk,
             SIGN: self.on_sign,
             VERSION: self.on_version,
+            BULLET: self.on_bullet
         }
         self.patterns = [
             (re.compile(r'^/spawn$'), self.on_spawn),
@@ -329,6 +331,12 @@ class Model(object):
         # TODO: has left message if was already authenticated
         self.send_talk('%s has joined the game.' % client.nick)
         self.check_if_enough_players_to_play()
+        
+    # Check to see if enough players have entered the game
+    # so that when there is enough players to start a game
+    # a new thread is started to countdown when the game is started
+    # to fulfill Req. 13.1 "When there is enough players to start a game
+    # there will be a one minute timer until the game is started"
     def check_if_enough_players_to_play(self):
         clientCount = len(self.clients)
         if clientCount < 2:
@@ -336,6 +344,11 @@ class Model(object):
         elif clientCount == 2:
             thread = threading.Thread(target=self.game_countdown)
             thread.start()
+            
+    # Displays a timer in the chat once there are enough players
+    # to start that counts down until the game has started then
+    # signals that the game has started. This fulfills Requirment
+    # 13.1.1 "Display a timer specifying when the game will start"
     def game_countdown(self):
         for count in range(60, 0, -1):
             self.send_talk('Game starting in %i seconds' % count)
@@ -423,6 +436,9 @@ class Model(object):
                 'x = :x and y = :y and z = :z;'
             )
             self.execute(query, dict(x=x, y=y, z=z))
+    def on_bullet(self, client, x, y, z):
+        client.bullet = (x, y, z)
+        self.send_bullet(client)
     def on_sign(self, client, x, y, z, face, *args):
         if client.user_id is None:
             client.send(TALK, 'Only logged in users are allowed to build.')
@@ -548,6 +564,15 @@ class Model(object):
             if other == client:
                 continue
             other.send(POSITION, client.client_id, *client.position)
+    
+    # Send bullet positions so that each player's bullets can be rendered to
+    # fulfill Requirement 3.0 "A bullet graphic shall be implemented to show
+    # the bullet's position
+    def send_bullet(self, client):
+        for other in self.clients:
+            if other == client:
+                continue
+            other.send(BULLET, client.client_id, *client.bullet)
     def send_nicks(self, client):
         for other in self.clients:
             if other == client:
