@@ -2758,6 +2758,7 @@ int main(int argc, char **argv) {
                 render_wireframe(&line_attrib, player);
             }
           
+            // initiate bullet
             if (player->bullet.shoot)
             {
                 init_bullet_position(&player->state, &player->bullet);
@@ -2766,6 +2767,7 @@ int main(int argc, char **argv) {
                 player->bullet.shoot = false;
             }
           
+            // move bullet / check for hit
             if (player->bullet.visible == true)
             {
                 increment_bullet_position(&player->bullet);
@@ -2776,6 +2778,7 @@ int main(int argc, char **argv) {
                 client_bullet(player->bullet.x, player->bullet.y, player->bullet.z);
             }
             
+            // render other player's bullets
             for (int i = 1; i < g->player_count; i++)
             {
                 Player *other = &g->players[i];
