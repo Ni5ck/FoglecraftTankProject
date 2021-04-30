@@ -2478,7 +2478,7 @@ bool bullet_goes_out_of_scope(Bullet *bullet, State *state)
     float sz = state->z;
     
     bool ret = false;
-    if ((fabsf(bullet->x) - fabsf(state->x) > 255) || (fabsf(bullet->y) - fabsf(state->y) > 255) || (fabsf(bullet->z) - fabsf(state->z) > 255))
+    if ((fabsf(bullet->x - state->x) > 255) || (fabsf(bullet->y - state->y) > 255) || (fabsf(bullet->z - state->z) > 255))
         ret = true;
     
     // post condition
